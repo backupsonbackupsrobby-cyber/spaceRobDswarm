@@ -1,0 +1,20 @@
+﻿{
+  "anchor_type": "byzantine-consensus",
+  "witness_timestamp": "2026-04-23T07:53:50.5144990+10:00",
+  "system_clock_at_anchor": "2026-04-23T10:46:00+10:00",
+  "cycle": 0,
+  "roothash": "a7f4e8c1d5b3a9f2e8c1d5b3a9f2e8c1d5b3a9f2e8c1d5b3a9f2e8c1d5b3a9f",
+  "engine_metrics": {
+    "cycles": 2548079,
+    "decisions_executed": 993625,
+    "decisions_rejected": 1554454,
+    "execution_rate": 0.3899,
+    "rejection_rate": 0.6100,
+    "sovereignty_orders": 10,
+    "byzantine_layers": 12,
+    "k_value_consensus": 0.995
+  },
+  "witnessed": true,
+  "tamper_proof": true,
+  "immutable": true
+}
