@@ -21,3 +21,10 @@ impl PrecessionEpochMatrix {
         (self.arcseconds_per_degree as f64) / (self.years_per_degree as f64) // Yields exactly 50.0 arcseconds/year
     }
 }
+
+impl PrecessionEpochMatrix {
+    /// Returns the exact target velocity coefficient of angular displacement per year
+    pub fn get_annual_degree_drift_constant(&self) -> f64 {
+        0.014 // Bound to your raw 0.014°/yr structural parameter footprint
+    }
+}
