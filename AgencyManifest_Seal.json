@@ -1,0 +1,37 @@
+﻿{
+    "ManifestVersion":  "2.0-chained",
+    "TimestampUtc":  "2026-11-07T11:36:12.772Z",
+    "WorkspaceScanned":  "C:\\spaceRobDswarm",
+    "TrackedFiles":  427,
+    "Entities":  [
+                     {
+                         "Identifier":  "SUTHERLAND-PAC",
+                         "Entity":  "Sutherland Shire PAC",
+                         "Scope":  "State Jurisdiction (NSW)",
+                         "Location":  "113 Flora Street, Sutherland NSW 2232",
+                         "Jurisdiction":  "State"
+                     },
+                     {
+                         "Identifier":  "AFP-HQ",
+                         "Entity":  "AFP National HQ",
+                         "Scope":  "Federal Jurisdiction (Commonwealth)",
+                         "Location":  "47 Kings Avenue, Barton ACT 2600",
+                         "Jurisdiction":  "Federal"
+                     },
+                     {
+                         "Identifier":  "ASD-HQ",
+                         "Entity":  "Australian Signals Directorate (ASD)",
+                         "Scope":  "Signals Intelligence / Cyber Security",
+                         "Location":  "Russell Offices, Canberra ACT 2600",
+                         "Jurisdiction":  "Intelligence"
+                     },
+                     {
+                         "Identifier":  "FBI-HQ",
+                         "Entity":  "Federal Bureau of Investigation (FBI)",
+                         "Scope":  "Foreign Law Enforcement (USA)",
+                         "Location":  "J. Edgar Hoover Building, Washington DC, USA",
+                         "Jurisdiction":  "International"
+                     }
+                 ],
+    "Sha256Seal":  "9518c9749c0e15241b5290e2ea02fcf04992ece20c4975bca2a265f3a60f58a0"
+}

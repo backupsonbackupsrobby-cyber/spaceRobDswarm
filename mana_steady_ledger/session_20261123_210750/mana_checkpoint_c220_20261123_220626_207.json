@@ -1,0 +1,3669 @@
+﻿[
+    {
+        "Cycle":  216,
+        "Chakra":  "7-Crown",
+        "Probe":  "TCP_Listening",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:22.9995600+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  49669,
+                         "OwningProcess":  4940,
+                         "Process":  "jhi_service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  47001,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  42050,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  7680,
+                         "OwningProcess":  17336,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5985,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  445,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5040,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "7-Crown",
+        "Probe":  "DNS_Servers",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:37.1705764+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "ServerAddresses":  [
+                                                 "127.0.2.2",
+                                                 "127.0.2.3"
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "4-Heart",
+        "Probe":  "UDP_Endpoints",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:38.8400719+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  60601,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  57406,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  56763,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5353,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63934,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63707,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  62706,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61626,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61173,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  60841,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  59799,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  56765,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56764,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  55187,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  50159,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49723,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  49664,
+                         "OwningProcess":  4888,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5355,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5353,
+                         "OwningProcess":  25224,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5050,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "1-Root",
+        "Probe":  "WiFi_Interface",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:52.9476332+11:00",
+        "Data":  [
+                     "There is 1 interface on the system:",
+                     "Name                   : Wi-Fi",
+                     "Description            : Intel(R) Wi-Fi 6 AX201 160MHz",
+                     "GUID                   : a7a8184a-85a3-4a5a-b4f3-22702e45d4cc",
+                     "Physical address       : 9e:b7:7a:0e:e2:c0",
+                     "Interface type         : Primary",
+                     "State                  : connected",
+                     "SSID                   : WiFi-348775",
+                     "BSSID                  : 60:83:e7:34:87:77",
+                     "Network type           : Infrastructure",
+                     "Radio type             : 802.11ax",
+                     "Authentication         : WPA2-Personal",
+                     "Cipher                 : CCMP",
+                     "Connection mode        : Auto Connect",
+                     "Band                   : 5 GHz",
+                     "Channel                : 36",
+                     "Receive rate (Mbps)    : 1201",
+                     "Transmit rate (Mbps)   : 1201",
+                     "Signal                 : 87%",
+                     "Profile                : WiFi-348775",
+                     "Hosted network status  : Not available"
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "1-Root",
+        "Probe":  "Net_Adapters",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:53.9086322+11:00",
+        "Data":  [
+                     {
+                         "Name":  "Cellular 6",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 9",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 7",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 11",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Wi-Fi",
+                         "InterfaceDescription":  "Intel(R) Wi-Fi 6 AX201 160MHz",
+                         "Status":  "Up",
+                         "MacAddress":  "9E-B7-7A-0E-E2-C0",
+                         "LinkSpeed":  "1.2 Gbps"
+                     },
+                     {
+                         "Name":  "Cellular 10",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 5",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 4",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 13",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 8",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 12",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 16",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 3",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 14",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 15",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Disconnected",
+                         "MacAddress":  "88-90-8F-55-54-50",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 17",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 2",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "2-Sacral",
+        "Probe":  "Host_Vitality",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:54.2450830+11:00",
+        "Data":  {
+                     "ComputerName":  "ROBDOEAI-CORE",
+                     "Uptime":  {
+                                    "Ticks":  3844988202080,
+                                    "Days":  4,
+                                    "Hours":  10,
+                                    "Milliseconds":  820,
+                                    "Minutes":  48,
+                                    "Seconds":  18,
+                                    "TotalDays":  4.4502178264814809,
+                                    "TotalHours":  106.80522783555556,
+                                    "TotalMilliseconds":  384498820.208,
+                                    "TotalMinutes":  6408.3136701333333,
+                                    "TotalSeconds":  384498.82020799996
+                                },
+                     "FreePhysicalMB":  9208.4,
+                     "TotalVisibleMB":  32494.8
+                 }
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "5-Throat",
+        "Probe":  "DNS_Cache",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:08.9713691+11:00",
+        "Data":  [
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.1",
+                         "TimeToLive":  162
+                     },
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.123",
+                         "TimeToLive":  162
+                     },
+                     {
+                         "Entry":  "robertdoe.pw",
+                         "Name":  "robertdoe.pw",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  3316
+                     },
+                     {
+                         "Entry":  "orchardappletree.com",
+                         "Name":  "orchardappletree.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  151
+                     },
+                     {
+                         "Entry":  "robdoe.com",
+                         "Name":  "robdoe.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  151
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "1-Root",
+        "Probe":  "UDP_Endpoints",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:10.5030823+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  60601,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  57406,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  56763,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5353,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  65102,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  65041,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  62706,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61173,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  59799,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  58152,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  56765,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56764,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  55123,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  54275,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  53812,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  53574,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  52637,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  49664,
+                         "OwningProcess":  4888,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5355,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5353,
+                         "OwningProcess":  1148,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5050,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "5-Throat",
+        "Probe":  "WiFi_Interface",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:24.8109581+11:00",
+        "Data":  [
+                     "There is 1 interface on the system:",
+                     "Name                   : Wi-Fi",
+                     "Description            : Intel(R) Wi-Fi 6 AX201 160MHz",
+                     "GUID                   : a7a8184a-85a3-4a5a-b4f3-22702e45d4cc",
+                     "Physical address       : 9e:b7:7a:0e:e2:c0",
+                     "Interface type         : Primary",
+                     "State                  : connected",
+                     "SSID                   : WiFi-348775",
+                     "BSSID                  : 60:83:e7:34:87:77",
+                     "Network type           : Infrastructure",
+                     "Radio type             : 802.11ax",
+                     "Authentication         : WPA2-Personal",
+                     "Cipher                 : CCMP",
+                     "Connection mode        : Auto Connect",
+                     "Band                   : 5 GHz",
+                     "Channel                : 36",
+                     "Receive rate (Mbps)    : 1201",
+                     "Transmit rate (Mbps)   : 1201",
+                     "Signal                 : 87%",
+                     "Profile                : WiFi-348775",
+                     "Hosted network status  : Not available"
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "5-Throat",
+        "Probe":  "Net_Adapters",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:25.1619677+11:00",
+        "Data":  [
+                     {
+                         "Name":  "Cellular 6",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 9",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 7",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 11",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Wi-Fi",
+                         "InterfaceDescription":  "Intel(R) Wi-Fi 6 AX201 160MHz",
+                         "Status":  "Up",
+                         "MacAddress":  "9E-B7-7A-0E-E2-C0",
+                         "LinkSpeed":  "1.2 Gbps"
+                     },
+                     {
+                         "Name":  "Cellular 10",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 5",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 4",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 13",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 8",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 12",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 16",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 3",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 14",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 15",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Disconnected",
+                         "MacAddress":  "88-90-8F-55-54-50",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 17",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 2",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "4-Heart",
+        "Probe":  "WiFi_Interface",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:22.0882131+11:00",
+        "Data":  [
+                     "There is 1 interface on the system:",
+                     "Name                   : Wi-Fi",
+                     "Description            : Intel(R) Wi-Fi 6 AX201 160MHz",
+                     "GUID                   : a7a8184a-85a3-4a5a-b4f3-22702e45d4cc",
+                     "Physical address       : 9e:b7:7a:0e:e2:c0",
+                     "Interface type         : Primary",
+                     "State                  : connected",
+                     "SSID                   : WiFi-348775",
+                     "BSSID                  : 60:83:e7:34:87:77",
+                     "Network type           : Infrastructure",
+                     "Radio type             : 802.11ax",
+                     "Authentication         : WPA2-Personal",
+                     "Cipher                 : CCMP",
+                     "Connection mode        : Auto Connect",
+                     "Band                   : 5 GHz",
+                     "Channel                : 36",
+                     "Receive rate (Mbps)    : 1201",
+                     "Transmit rate (Mbps)   : 1201",
+                     "Signal                 : 87%",
+                     "Profile                : WiFi-348775",
+                     "Hosted network status  : Not available"
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "7-Crown",
+        "Probe":  "Host_Vitality",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:38.0200631+11:00",
+        "Data":  {
+                     "ComputerName":  "ROBDOEAI-CORE",
+                     "Uptime":  {
+                                    "Ticks":  3844825941855,
+                                    "Days":  4,
+                                    "Hours":  10,
+                                    "Milliseconds":  594,
+                                    "Minutes":  48,
+                                    "Seconds":  2,
+                                    "TotalDays":  4.4500300252951384,
+                                    "TotalHours":  106.80072060708333,
+                                    "TotalMilliseconds":  384482594.1855,
+                                    "TotalMinutes":  6408.043236425,
+                                    "TotalSeconds":  384482.5941855
+                                },
+                     "FreePhysicalMB":  9222.5,
+                     "TotalVisibleMB":  32494.8
+                 }
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "4-Heart",
+        "Probe":  "TCP_Listening",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:54.7140749+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  49669,
+                         "OwningProcess":  4940,
+                         "Process":  "jhi_service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  47001,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  42050,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  7680,
+                         "OwningProcess":  17336,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5985,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  445,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5040,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "4-Heart",
+        "Probe":  "DNS_Servers",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:08.9333710+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "ServerAddresses":  [
+                                                 "127.0.2.2",
+                                                 "127.0.2.3"
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "7-Crown",
+        "Probe":  "TCP_Established",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:09.6655762+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  64141,
+                         "RemoteAddress":  "151.101.2.137",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  63295,
+                         "RemoteAddress":  "150.171.73.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  60846,
+                         "RemoteAddress":  "172.172.255.217",
+                         "RemotePort":  443,
+                         "OwningProcess":  5300,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  58180,
+                         "RemoteAddress":  "52.110.12.30",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56618,
+                         "RemoteAddress":  "172.217.194.188",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49239,
+                         "RemoteAddress":  "162.159.46.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49238,
+                         "RemoteAddress":  "162.159.46.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49220,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49219,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "7-Crown",
+        "Probe":  "DNS_Cache",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:24.5429597+11:00",
+        "Data":  [
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.1",
+                         "TimeToLive":  147
+                     },
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.123",
+                         "TimeToLive":  147
+                     },
+                     {
+                         "Entry":  "robertdoe.pw",
+                         "Name":  "robertdoe.pw",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  3301
+                     },
+                     {
+                         "Entry":  "orchardappletree.com",
+                         "Name":  "orchardappletree.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  136
+                     },
+                     {
+                         "Entry":  "robdoe.com",
+                         "Name":  "robdoe.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  136
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "UDP_Endpoints",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:26.2029616+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  60601,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  57406,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  56763,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5353,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  65102,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  65041,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  62706,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61173,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  59799,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  58152,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  56765,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56764,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  55123,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  54275,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  53812,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  53574,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  52637,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  49664,
+                         "OwningProcess":  4888,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5355,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5353,
+                         "OwningProcess":  25240,
+                         "Process":  "copilotapp"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5050,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "DNS_Cache",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:21.7092149+11:00",
+        "Data":  [
+                     {
+                         "Entry":  "robertdoe.pw",
+                         "Name":  "robertdoe.pw",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  3364
+                     },
+                     {
+                         "Entry":  "orchardappletree.com",
+                         "Name":  "orchardappletree.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  199
+                     },
+                     {
+                         "Entry":  "robdoe.com",
+                         "Name":  "robdoe.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  199
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "ARP_Neighbors",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:21.9972134+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "00-00-00-00-00-00",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "01-00-5E-7F-FF-FA",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.251",
+                         "LinkLayerAddress":  "01-00-5E-00-00-FB",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.102",
+                         "LinkLayerAddress":  "E2-EF-9F-27-69-33",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.101",
+                         "LinkLayerAddress":  "44-FE-EF-A7-C1-17",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.100",
+                         "LinkLayerAddress":  "F4-20-15-C9-97-2A",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.1",
+                         "LinkLayerAddress":  "60-83-E7-34-87-75",
+                         "State":  5
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "34.68.218.70",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "5-Throat",
+        "Probe":  "DNS_Servers",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:21.7052153+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "ServerAddresses":  [
+                                                 "127.0.2.2",
+                                                 "127.0.2.3"
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "4-Heart",
+        "Probe":  "Net_Adapters",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:22.1732089+11:00",
+        "Data":  [
+                     {
+                         "Name":  "Cellular 6",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 9",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 7",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 11",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Wi-Fi",
+                         "InterfaceDescription":  "Intel(R) Wi-Fi 6 AX201 160MHz",
+                         "Status":  "Up",
+                         "MacAddress":  "9E-B7-7A-0E-E2-C0",
+                         "LinkSpeed":  "1.2 Gbps"
+                     },
+                     {
+                         "Name":  "Cellular 10",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 5",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 4",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 13",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 8",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 12",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 16",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 3",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 14",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 15",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Disconnected",
+                         "MacAddress":  "88-90-8F-55-54-50",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 17",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 2",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "5-Throat",
+        "Probe":  "ARP_Neighbors",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:37.8500589+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "00-00-00-00-00-00",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "01-00-5E-7F-FF-FA",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.251",
+                         "LinkLayerAddress":  "01-00-5E-00-00-FB",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.102",
+                         "LinkLayerAddress":  "E2-EF-9F-27-69-33",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.101",
+                         "LinkLayerAddress":  "44-FE-EF-A7-C1-17",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.100",
+                         "LinkLayerAddress":  "F4-20-15-C9-97-2A",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.1",
+                         "LinkLayerAddress":  "60-83-E7-34-87-75",
+                         "State":  5
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "34.68.218.70",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "7-Crown",
+        "Probe":  "ARP_Neighbors",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:53.7776297+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "00-00-00-00-00-00",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "01-00-5E-7F-FF-FA",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.251",
+                         "LinkLayerAddress":  "01-00-5E-00-00-FB",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.102",
+                         "LinkLayerAddress":  "E2-EF-9F-27-69-33",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.101",
+                         "LinkLayerAddress":  "44-FE-EF-A7-C1-17",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.100",
+                         "LinkLayerAddress":  "F4-20-15-C9-97-2A",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.1",
+                         "LinkLayerAddress":  "60-83-E7-34-87-75",
+                         "State":  5
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "34.68.218.70",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "2-Sacral",
+        "Probe":  "ARP_Neighbors",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:09.5085738+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "00-00-00-00-00-00",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "01-00-5E-7F-FF-FA",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.251",
+                         "LinkLayerAddress":  "01-00-5E-00-00-FB",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.102",
+                         "LinkLayerAddress":  "E2-EF-9F-27-69-33",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.101",
+                         "LinkLayerAddress":  "44-FE-EF-A7-C1-17",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.100",
+                         "LinkLayerAddress":  "F4-20-15-C9-97-2A",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.1",
+                         "LinkLayerAddress":  "60-83-E7-34-87-75",
+                         "State":  5
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "34.68.218.70",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "Host_Vitality",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:25.1469606+11:00",
+        "Data":  {
+                     "ComputerName":  "ROBDOEAI-CORE",
+                     "Uptime":  {
+                                    "Ticks":  3845297210864,
+                                    "Days":  4,
+                                    "Hours":  10,
+                                    "Milliseconds":  721,
+                                    "Minutes":  48,
+                                    "Seconds":  49,
+                                    "TotalDays":  4.450575475537037,
+                                    "TotalHours":  106.81381141288888,
+                                    "TotalMilliseconds":  384529721.08640003,
+                                    "TotalMinutes":  6408.8286847733334,
+                                    "TotalSeconds":  384529.7210864
+                                },
+                     "FreePhysicalMB":  9200.8,
+                     "TotalVisibleMB":  32494.8
+                 }
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "5-Throat",
+        "Probe":  "Host_Vitality",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:22.2292121+11:00",
+        "Data":  {
+                     "ComputerName":  "ROBDOEAI-CORE",
+                     "Uptime":  {
+                                    "Ticks":  3844668033407,
+                                    "Days":  4,
+                                    "Hours":  10,
+                                    "Milliseconds":  803,
+                                    "Minutes":  47,
+                                    "Seconds":  46,
+                                    "TotalDays":  4.4498472608877311,
+                                    "TotalHours":  106.79633426130555,
+                                    "TotalMilliseconds":  384466803.34070003,
+                                    "TotalMinutes":  6407.7800556783332,
+                                    "TotalSeconds":  384466.8033407
+                                },
+                     "FreePhysicalMB":  9230.2,
+                     "TotalVisibleMB":  32494.8
+                 }
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "2-Sacral",
+        "Probe":  "TCP_Listening",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:38.6221635+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  49669,
+                         "OwningProcess":  4940,
+                         "Process":  "jhi_service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  47001,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  42050,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  7680,
+                         "OwningProcess":  17336,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5985,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  445,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5040,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "2-Sacral",
+        "Probe":  "DNS_Servers",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:52.6872829+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "ServerAddresses":  [
+                                                 "127.0.2.2",
+                                                 "127.0.2.3"
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "5-Throat",
+        "Probe":  "TCP_Established",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:54.0971005+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  64141,
+                         "RemoteAddress":  "151.101.2.137",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  63295,
+                         "RemoteAddress":  "150.171.73.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  60846,
+                         "RemoteAddress":  "172.172.255.217",
+                         "RemotePort":  443,
+                         "OwningProcess":  5300,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  58180,
+                         "RemoteAddress":  "52.110.12.30",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56618,
+                         "RemoteAddress":  "172.217.194.188",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49228,
+                         "RemoteAddress":  "162.159.36.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49220,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49219,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "TCP_Listening",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:10.3205836+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  49669,
+                         "OwningProcess":  4940,
+                         "Process":  "jhi_service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  47001,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  42050,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  7680,
+                         "OwningProcess":  17336,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5985,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  445,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5040,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "DNS_Servers",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:24.5249572+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "ServerAddresses":  [
+
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "ServerAddresses":  [
+                                                 "127.0.2.2",
+                                                 "127.0.2.3"
+                                             ]
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "ServerAddresses":  [
+
+                                             ]
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "2-Sacral",
+        "Probe":  "TCP_Established",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:25.2879601+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  64141,
+                         "RemoteAddress":  "151.101.2.137",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  63295,
+                         "RemoteAddress":  "150.171.73.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  60846,
+                         "RemoteAddress":  "172.172.255.217",
+                         "RemotePort":  443,
+                         "OwningProcess":  5300,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  58180,
+                         "RemoteAddress":  "52.110.12.30",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56618,
+                         "RemoteAddress":  "172.217.194.188",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49289,
+                         "RemoteAddress":  "162.159.36.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49220,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49219,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "2-Sacral",
+        "Probe":  "UDP_Endpoints",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:23.1836313+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  57406,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  56763,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  54563,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5353,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63934,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63707,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  62706,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61626,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61173,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  60841,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  59799,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  56765,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56764,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  55187,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  50159,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49723,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  49664,
+                         "OwningProcess":  4888,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5355,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5353,
+                         "OwningProcess":  25224,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5050,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "WiFi_Interface",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:37.5395745+11:00",
+        "Data":  [
+                     "There is 1 interface on the system:",
+                     "Name                   : Wi-Fi",
+                     "Description            : Intel(R) Wi-Fi 6 AX201 160MHz",
+                     "GUID                   : a7a8184a-85a3-4a5a-b4f3-22702e45d4cc",
+                     "Physical address       : 9e:b7:7a:0e:e2:c0",
+                     "Interface type         : Primary",
+                     "State                  : connected",
+                     "SSID                   : WiFi-348775",
+                     "BSSID                  : 60:83:e7:34:87:77",
+                     "Network type           : Infrastructure",
+                     "Radio type             : 802.11ax",
+                     "Authentication         : WPA2-Personal",
+                     "Cipher                 : CCMP",
+                     "Connection mode        : Auto Connect",
+                     "Band                   : 5 GHz",
+                     "Channel                : 36",
+                     "Receive rate (Mbps)    : 1201",
+                     "Transmit rate (Mbps)   : 1201",
+                     "Signal                 : 87%",
+                     "Profile                : WiFi-348775",
+                     "Hosted network status  : Not available"
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "Net_Adapters",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:37.9310589+11:00",
+        "Data":  [
+                     {
+                         "Name":  "Cellular 6",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 9",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 7",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 11",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Wi-Fi",
+                         "InterfaceDescription":  "Intel(R) Wi-Fi 6 AX201 160MHz",
+                         "Status":  "Up",
+                         "MacAddress":  "9E-B7-7A-0E-E2-C0",
+                         "LinkSpeed":  "1.2 Gbps"
+                     },
+                     {
+                         "Name":  "Cellular 10",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 5",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 4",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 13",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 8",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 12",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 16",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 3",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 14",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 15",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Disconnected",
+                         "MacAddress":  "88-90-8F-55-54-50",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 17",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 2",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "6-ThirdEye",
+        "Probe":  "UDP_Endpoints",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:54.9691730+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  60601,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  57406,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  56763,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5353,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63934,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  63707,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  62706,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61626,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  61173,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  60841,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  59799,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  56765,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56764,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  55187,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  50159,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49723,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  49664,
+                         "OwningProcess":  4888,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5355,
+                         "OwningProcess":  2892,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5353,
+                         "OwningProcess":  25224,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5050,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.0.1",
+                         "LocalPort":  1900,
+                         "OwningProcess":  6156,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  123,
+                         "OwningProcess":  13684,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "WiFi_Interface",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:09.1078528+11:00",
+        "Data":  [
+                     "There is 1 interface on the system:",
+                     "Name                   : Wi-Fi",
+                     "Description            : Intel(R) Wi-Fi 6 AX201 160MHz",
+                     "GUID                   : a7a8184a-85a3-4a5a-b4f3-22702e45d4cc",
+                     "Physical address       : 9e:b7:7a:0e:e2:c0",
+                     "Interface type         : Primary",
+                     "State                  : connected",
+                     "SSID                   : WiFi-348775",
+                     "BSSID                  : 60:83:e7:34:87:77",
+                     "Network type           : Infrastructure",
+                     "Radio type             : 802.11ax",
+                     "Authentication         : WPA2-Personal",
+                     "Cipher                 : CCMP",
+                     "Connection mode        : Auto Connect",
+                     "Band                   : 5 GHz",
+                     "Channel                : 36",
+                     "Receive rate (Mbps)    : 1201",
+                     "Transmit rate (Mbps)   : 1201",
+                     "Signal                 : 87%",
+                     "Profile                : WiFi-348775",
+                     "Hosted network status  : Not available"
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "Net_Adapters",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:09.6005755+11:00",
+        "Data":  [
+                     {
+                         "Name":  "Cellular 6",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 9",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 7",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 11",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Wi-Fi",
+                         "InterfaceDescription":  "Intel(R) Wi-Fi 6 AX201 160MHz",
+                         "Status":  "Up",
+                         "MacAddress":  "9E-B7-7A-0E-E2-C0",
+                         "LinkSpeed":  "1.2 Gbps"
+                     },
+                     {
+                         "Name":  "Cellular 10",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 5",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 4",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 13",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 8",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 12",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 16",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 3",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 14",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 15",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Disconnected",
+                         "MacAddress":  "88-90-8F-55-54-50",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 17",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     },
+                     {
+                         "Name":  "Cellular 2",
+                         "InterfaceDescription":  "DW5820e Intel(R) 7360 LTE-A",
+                         "Status":  "Not Present",
+                         "MacAddress":  "",
+                         "LinkSpeed":  "0 bps"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "1-Root",
+        "Probe":  "TCP_Listening",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:25.8159557+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  49669,
+                         "OwningProcess":  4940,
+                         "Process":  "jhi_service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  47001,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::1",
+                         "LocalPort":  42050,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  7680,
+                         "OwningProcess":  17336,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  5985,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  445,
+                         "OwningProcess":  4,
+                         "Process":  "System"
+                     },
+                     {
+                         "LocalAddress":  "::",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49670,
+                         "OwningProcess":  904,
+                         "Process":  "services"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49668,
+                         "OwningProcess":  4224,
+                         "Process":  "spoolsv"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49667,
+                         "OwningProcess":  2904,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49666,
+                         "OwningProcess":  2912,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49665,
+                         "OwningProcess":  1020,
+                         "Process":  "wininit"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  49664,
+                         "OwningProcess":  1112,
+                         "Process":  "lsass"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  5040,
+                         "OwningProcess":  8548,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "0.0.0.0",
+                         "LocalPort":  135,
+                         "OwningProcess":  1420,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.3",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     },
+                     {
+                         "LocalAddress":  "127.0.2.2",
+                         "LocalPort":  53,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  216,
+        "Chakra":  "1-Root",
+        "Probe":  "TCP_Established",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:05:22.2482231+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  64141,
+                         "RemoteAddress":  "151.101.2.137",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  63295,
+                         "RemoteAddress":  "150.171.73.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  60846,
+                         "RemoteAddress":  "172.172.255.217",
+                         "RemotePort":  443,
+                         "OwningProcess":  5300,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  58180,
+                         "RemoteAddress":  "52.110.12.30",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56618,
+                         "RemoteAddress":  "172.217.194.188",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49190,
+                         "RemoteAddress":  "162.159.46.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "1-Root",
+        "Probe":  "DNS_Cache",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:37.1775761+11:00",
+        "Data":  [
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.1",
+                         "TimeToLive":  194
+                     },
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.123",
+                         "TimeToLive":  194
+                     },
+                     {
+                         "Entry":  "robertdoe.pw",
+                         "Name":  "robertdoe.pw",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  3348
+                     },
+                     {
+                         "Entry":  "orchardappletree.com",
+                         "Name":  "orchardappletree.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  183
+                     },
+                     {
+                         "Entry":  "robdoe.com",
+                         "Name":  "robdoe.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  183
+                     }
+                 ]
+    },
+    {
+        "Cycle":  217,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "TCP_Established",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:05:38.0380564+11:00",
+        "Data":  [
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  64141,
+                         "RemoteAddress":  "151.101.2.137",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  63295,
+                         "RemoteAddress":  "150.171.73.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  60846,
+                         "RemoteAddress":  "172.172.255.217",
+                         "RemotePort":  443,
+                         "OwningProcess":  5300,
+                         "Process":  "svchost"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  58180,
+                         "RemoteAddress":  "52.110.12.30",
+                         "RemotePort":  443,
+                         "OwningProcess":  15736,
+                         "Process":  "msedge"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  56618,
+                         "RemoteAddress":  "172.217.194.188",
+                         "RemotePort":  443,
+                         "OwningProcess":  24236,
+                         "Process":  "chrome"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49220,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49219,
+                         "RemoteAddress":  "20.89.1.13",
+                         "RemotePort":  443,
+                         "OwningProcess":  31292,
+                         "Process":  "OneDrive.Sync.Service"
+                     },
+                     {
+                         "LocalAddress":  "192.168.1.124",
+                         "LocalPort":  49196,
+                         "RemoteAddress":  "162.159.46.1",
+                         "RemotePort":  853,
+                         "OwningProcess":  24152,
+                         "Process":  "warp-svc"
+                     }
+                 ]
+    },
+    {
+        "Cycle":  218,
+        "Chakra":  "3-SolarPlexus",
+        "Probe":  "DNS_Cache",
+        "FlowCue":  "Steady weight -\u003e unhurried breath -\u003e let tension drop without forcing",
+        "Timestamp":  "2026-11-23T22:05:52.8239636+11:00",
+        "Data":  [
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.1",
+                         "TimeToLive":  179
+                     },
+                     {
+                         "Entry":  "time.cloudflare.com",
+                         "Name":  "time.cloudflare.com",
+                         "Data":  "162.159.200.123",
+                         "TimeToLive":  179
+                     },
+                     {
+                         "Entry":  "robertdoe.pw",
+                         "Name":  "robertdoe.pw",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  3333
+                     },
+                     {
+                         "Entry":  "orchardappletree.com",
+                         "Name":  "orchardappletree.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  168
+                     },
+                     {
+                         "Entry":  "robdoe.com",
+                         "Name":  "robdoe.com",
+                         "Data":  "34.68.218.70",
+                         "TimeToLive":  168
+                     }
+                 ]
+    },
+    {
+        "Cycle":  219,
+        "Chakra":  "4-Heart",
+        "Probe":  "Host_Vitality",
+        "FlowCue":  "Quiet axis -\u003e jaw unclenched -\u003e smooth transition into the next sweep",
+        "Timestamp":  "2026-11-23T22:06:09.5745741+11:00",
+        "Data":  {
+                     "ComputerName":  "ROBDOEAI-CORE",
+                     "Uptime":  {
+                                    "Ticks":  3845141487106,
+                                    "Days":  4,
+                                    "Hours":  10,
+                                    "Milliseconds":  148,
+                                    "Minutes":  48,
+                                    "Seconds":  34,
+                                    "TotalDays":  4.450395239706018,
+                                    "TotalHours":  106.80948575294444,
+                                    "TotalMilliseconds":  384514148.7106,
+                                    "TotalMinutes":  6408.569145176667,
+                                    "TotalSeconds":  384514.1487106
+                                },
+                     "FreePhysicalMB":  9198.9,
+                     "TotalVisibleMB":  32494.8
+                 }
+    },
+    {
+        "Cycle":  220,
+        "Chakra":  "4-Heart",
+        "Probe":  "ARP_Neighbors",
+        "FlowCue":  "Feet grounded -\u003e shoulders soft -\u003e slow nasal exhale",
+        "Timestamp":  "2026-11-23T22:06:25.1159521+11:00",
+        "Data":  [
+                     {
+                         "InterfaceAlias":  "Local Area Connection* 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Cellular",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "00-00-00-00-00-00",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "01-00-5E-7F-FF-FA",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.251",
+                         "LinkLayerAddress":  "01-00-5E-00-00-FB",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "01-00-5E-00-00-16",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.102",
+                         "LinkLayerAddress":  "E2-EF-9F-27-69-33",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.101",
+                         "LinkLayerAddress":  "44-FE-EF-A7-C1-17",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.100",
+                         "LinkLayerAddress":  "F4-20-15-C9-97-2A",
+                         "State":  4
+                     },
+                     {
+                         "InterfaceAlias":  "Wi-Fi",
+                         "IPAddress":  "192.168.1.1",
+                         "LinkLayerAddress":  "60-83-E7-34-87-75",
+                         "State":  5
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "239.255.255.250",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "224.0.0.22",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     },
+                     {
+                         "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                         "IPAddress":  "34.68.218.70",
+                         "LinkLayerAddress":  "",
+                         "State":  6
+                     }
+                 ]
+    }
+]

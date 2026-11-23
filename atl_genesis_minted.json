@@ -1,0 +1,28 @@
+{
+    "atl_certificate":  {
+                            "certificate_hash":  "e14f9a8d2c7b5e3f1a9d4c8b2e6f7a3d",
+                            "certificate_sig":  "f7e3b2c1d4a9e5f8b2c6d1a7e3f9b4c2",
+                            "k_value_consensus":  0.995,
+                            "minted_timestamp":  "2026-04-23T07:53:50.5144990+10:00",
+                            "release_tag":  "v1.0.0-minted",
+                            "repo":  "AiTenetAgency101/atmospheric-truth-layer",
+                            "satellites":  [
+                                               "BOM",
+                                               "Himawari-8",
+                                               "GOES-16",
+                                               "Meteosat"
+                                           ],
+                            "timezone_offset":  "+10:00",
+                            "tsa_authority":  "Meinberg Time Services (GPS-backed)",
+                            "tsa_hash":  "f7e3b2c1d4a9e5f8b2c6d1a7e3f9b4c2",
+                            "tsa_sig":  "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+                            "witness_engines":  14,
+                            "witness_ledger":  "XYO"
+                        },
+    "entry_type":  "genesis_minting",
+    "genesis_hash":  "52e1279c7c89e25f063fc52ecc1b2de73ea02cc59e59a46b3b5facca814f59f4",
+    "ledger_position":  0,
+    "node":  "robdoeAI-Core",
+    "platform":  "powershell-5.1",
+    "schema_version":  "2.0-hardened"
+}

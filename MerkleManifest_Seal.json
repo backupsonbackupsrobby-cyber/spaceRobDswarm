@@ -1,0 +1,28 @@
+﻿{
+    "Protocol":  "Merkle-DAG-v1",
+    "TimestampUtc":  "2026-11-07T11:37:45.520Z",
+    "Branches":  {
+                     "AgencyBranchRoot":  "30d309fbc8937a39b9639f1c122f8f1e5d1e96cdabe0487fd3f8ab0e1727f4b1",
+                     "WorkspaceBranchRoot":  "f2ac1f99281e7ebb26f9e64e538b940b5b5810d84a6af9d004e632b05fefe5ec"
+                 },
+    "AgencyLeafs":  [
+                        {
+                            "Identifier":  "SUTHERLAND-PAC",
+                            "LeafHash":  "1688a231020defcb7a310c14b73751702c89a77848b83ad308debcf29e03ced6"
+                        },
+                        {
+                            "Identifier":  "AFP-HQ",
+                            "LeafHash":  "9afa6d10ed339883650466bcbf780cca2d020c90e6d31204481c50134ae22d03"
+                        },
+                        {
+                            "Identifier":  "ASD-HQ",
+                            "LeafHash":  "bf38a0cb180763fdcfa3d4ec25dacafa8e6d44e713473a6050b3183ea255efa0"
+                        },
+                        {
+                            "Identifier":  "FBI-HQ",
+                            "LeafHash":  "21bd25c4bb86e70e341f0e495f662a1fc49ea9190e2e20ead336b1b7c3e63bac"
+                        }
+                    ],
+    "TrackedFilesCount":  427,
+    "MerkleRoot":  "fb4bc2899549519eece833cb5148d385e0b56cc3edd98b471633cb5e215010d8"
+}

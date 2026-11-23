@@ -1,0 +1,43 @@
+{
+    "schema":  "suc-inc-acoustic-mach-v1",
+    "immutable_append_only":  true,
+    "payload_sha256":  "5f5ff2d203edaaf174c74c22d3f34d621901c32548cc5aa26ccb15d2207e2706",
+    "payload":  {
+                    "node":  "robdoeAI-Core",
+                    "platform":  "powershell-5.1",
+                    "drive_anchor":  "C:",
+                    "external_unit":  "SUC+INC-ACOUSTIC-MACH-IRRIGATION",
+                    "external_unit_mode":  "SUC+INC-ACOUSTIC-PRESSURE-LOCK",
+                    "damping_alpha":  0.35,
+                    "stop_trigger":  "SEAL-EXIT",
+                    "started_utc":  "2026-11-21T11:37:53.709Z",
+                    "stopped_utc":  "2026-11-21T11:44:57.774Z",
+                    "ticks":  382,
+                    "unit_phase_lock_mean":  0.6438,
+                    "external_spirit_magnitude_mean":  4.5591,
+                    "external_spirit_magnitude_peak":  4.9685,
+                    "external_spirit_frequency_hz_mean":  68.632,
+                    "external_spirit_frequency_hz_peak":  77.485,
+                    "low_decibel_mean":  34.3,
+                    "low_decibel_peak":  45,
+                    "sound_wave_hz_latest":  25.427,
+                    "mach_pressure_mean":  44.66,
+                    "mach_pressure_peak":  57.52,
+                    "band_005_hz":  3.05,
+                    "band_005_mhz":  7.55,
+                    "band_005_ghz":  1.55,
+                    "irrigation_flow_lpm_mean":  29.652,
+                    "irrigation_flow_lpm_peak":  33.192,
+                    "zone_saturation":  {
+                                            "Zone-1-Rootline":  1,
+                                            "Zone-2-Canopy":  1,
+                                            "Zone-3-Subsoil":  1,
+                                            "Zone-4-Perimeter":  1
+                                        },
+                    "kuramoto_order_r_mean":  0.834,
+                    "kuramoto_order_r_peak":  0.8828,
+                    "kuramoto_theta_inf":  119.7292,
+                    "unit_merkle_root":  "a3186cc2f0e42086e95551783a90340ffe285e8de0b8ac6633aa1facf7901502",
+                    "last_pulse_hash":  "4104f227c2b709cbc3c51e625d02e17169013b653c7924e51a4a20cd64ae519b"
+                }
+}

@@ -1,0 +1,36 @@
+﻿name: Lattice Swarm CI Engine
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  compile-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 1. Clone Sovereign Source Tree
+      uses: actions/checkout@v4
+
+    - name: 2. Initialize Node Environment Lattice
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: 3. Inject Core Hardhat Dependencies
+      run: |
+        npm init -y
+        npm install --save-dev hardhat @openzeppelin/contracts @nomicfoundation/hardhat-toolbox
+
+    - name: 4. Initialize Hardhat Configuration
+      run: |
+        cat << 'EOF' > hardhat.config.js
+        module.exports = {
+          solidity: "0.8.20",
+          paths: { sources: "./contracts", tests: "./test", cache: "./cache", artifacts: "./artifacts" }
+        };
+        EOF
+
+    - name: 5. Execute Compilation Matrix
+      run: npx hardhat compile
