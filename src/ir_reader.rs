@@ -8,6 +8,17 @@ impl AddAssign<i32> for JumpTarget {
     }
 }
 
+impl JumpTarget {
+    fn advance(&mut self, words: u32) {
+        debug_assert!(
+            (self.0 as u64) + (words as u64) <= u32::MAX as u64,
+            "IR address overflow advancing {words} word(s) past {:#010x}",
+            self.0
+        );
+        *self += words as i32;
+    }
+}
+
 pub(crate) struct IrReader;
 impl IrReader {
     fn read(code: &[Box<TextPage>], address: &mut JumpTarget) -> u16 {
@@ -19,7 +30,7 @@ impl IrReader {
             if page >= code.len() || offset >= 256 {
                 panic!("invalid read address");
             } else {
-                *address += 1;
+                address.advance(1);
                 code[page].0[offset]
             }
         }
@@ -27,7 +38,7 @@ impl IrReader {
         #[cfg(not(feature = "strict-assertions"))]
         {
             let v = unsafe { code.get_unchecked(page).0.get_unchecked(offset) };
-            *address += 1;
+            address.advance(1);
             *v
         }
     }
@@ -66,6 +77,20 @@ impl IrReader {
         let opcode = (first >> 8) as u8;
         let imm = (first & 0xFF) as u8;
 
+        macro_rules! imm_valtype {
+            () => {
+                match ValType::from_repr(imm) {
+                    Some(ty) => ty,
+                    None => {
+                        #[cfg(feature = "strict-assertions")]
+                        panic!("invalid ValType immediate {imm:#04x} for opcode {opcode:?}");
+                        #[cfg(not(feature = "strict-assertions"))]
+                        return visitor.malformed_ir(state);
+                    }
+                }
+            };
+        }
+
         macro_rules! instruction {
             // Instruction with no operands
             ($name:ident) => {{
@@ -78,7 +103,7 @@ impl IrReader {
                 visitor.$name(
                     LocalVariable {
                         frame_offset,
-                        ty: imm.into(),
+                        ty: imm_valtype!(),
                     },
                     state,
                 )?;
@@ -184,10 +209,10 @@ impl IrReader {
 
             // Parametric instructions
             DROP => {
-                visitor.drop(imm.into(), state)?;
+                visitor.drop(imm_valtype!(), state)?;
             }
             SELECT => {
-                visitor.select(imm.into(), state)?;
+                visitor.select(imm_valtype!(), state)?;
             }
 
             // Variable instructions
@@ -425,7 +450,41 @@ impl IrReader {
             F64_CONVERT_I64_S => instruction!(f64_convert_i64_s),
             F64_CONVERT_I64_U => instruction!(f64_convert_i64_u),
             F64_PROMOTE_F32 => instruction!(f64_promote_f32),
-            _ => panic!("invalid opcode {opcode:?}"),
+
+            I32_EXTEND_8_S => instruction!(i32_extend8_s),
+            I32_EXTEND_16_S => instruction!(i32_extend16_s),
+            I64_EXTEND_8_S => instruction!(i64_extend8_s),
+            I64_EXTEND_16_S => instruction!(i64_extend16_s),
+            I64_EXTEND_32_S => instruction!(i64_extend32_s),
+
+            EXTENDED_FC => {
+                // Expected opcode embedded into the immediate
+                match imm as u32 {
+                    // Non-trapping float-to-int
+                    fc::I32_TRUNC_SAT_F32_S => instruction!(i32_trunc_sat_f32_s),
+                    fc::I32_TRUNC_SAT_F32_U => instruction!(i32_trunc_sat_f32_u),
+                    fc::I32_TRUNC_SAT_F64_S => instruction!(i32_trunc_sat_f64_s),
+                    fc::I32_TRUNC_SAT_F64_U => instruction!(i32_trunc_sat_f64_u),
+                    fc::I64_TRUNC_SAT_F32_S => instruction!(i64_trunc_sat_f32_s),
+                    fc::I64_TRUNC_SAT_F32_U => instruction!(i64_trunc_sat_f32_u),
+                    fc::I64_TRUNC_SAT_F64_S => instruction!(i64_trunc_sat_f64_s),
+                    fc::I64_TRUNC_SAT_F64_U => instruction!(i64_trunc_sat_f64_u),
+
+                    _ => {
+                        #[cfg(feature = "strict-assertions")]
+                        panic!("invalid opcode {opcode} {imm}");
+                        #[cfg(not(feature = "strict-assertions"))]
+                        return visitor.malformed_ir(state);
+                    }
+                }
+            }
+
+            _ => {
+                #[cfg(feature = "strict-assertions")]
+                panic!("invalid opcode {opcode}");
+                #[cfg(not(feature = "strict-assertions"))]
+                return visitor.malformed_ir(state);
+            }
         }
 
         Ok(())

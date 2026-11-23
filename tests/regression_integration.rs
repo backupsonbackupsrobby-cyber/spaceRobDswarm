@@ -88,6 +88,24 @@ pub fn regression_host_module() -> HostModule {
             HostFunction::new("pause_f64", "".into(), "d".into(), |_, _| {
                 ControlFlow::Break(HostFunctionBreak::Pause)
             }),
+            HostFunction::new(
+                "invalid_should_return_some",
+                "".into(),
+                "i".into(),
+                |_, _| {
+                    // The return value string says it returns an i32 but we are returning void
+                    ControlFlow::Continue(None)
+                },
+            ),
+            HostFunction::new(
+                "invalid_should_return_none",
+                "".into(),
+                "".into(),
+                |_, _| {
+                    // The return value string says it returns void but we are returning Some(I32(1))
+                    ControlFlow::Continue(Some(Value::I32(1)))
+                },
+            ),
         ],
         memory: vec![],
         table: vec![],
@@ -98,6 +116,32 @@ fn run(test_name: &str) {
     run_wast_test_file(test_name, || {
         vec![spectest_host_module(), regression_host_module()]
     });
+}
+
+/// Host module `alias` exposing a single funcref table under two symbol names
+/// (`t` and `t_twin`) that share one backing `Rc`. Because the `Rc`'s strong
+/// count is permanently >= 2, any guest importing `alias`."t" and initializing
+/// it via an active element segment cannot take the unique borrow
+/// `Module::get_table` requires, so the load is rejected with
+/// `ValidationError::TableRefNotUnique`. Used only by `table_ref_not_unique`.
+fn aliased_table_host_module() -> HostModule {
+    let table: Rc<[TableElement]> = Rc::new_slice_with_default(4).unwrap();
+    HostModule {
+        name: "alias".into(),
+        globals: vec![],
+        functions: vec![],
+        memory: vec![],
+        table: vec![
+            HostSymbol {
+                name: "t".into(),
+                value: (table.clone(), Limit { min: 4, max: None }),
+            },
+            HostSymbol {
+                name: "t_twin".into(),
+                value: (table, Limit { min: 4, max: None }),
+            },
+        ],
+    }
 }
 
 #[test]
@@ -136,6 +180,11 @@ fn extern_memory() {
 }
 
 #[test]
+fn zero_page_memory_grow() {
+    run("regression/zero_page_memory_grow");
+}
+
+#[test]
 fn start_stack_overflow() {
     run("regression/start_stack_overflow");
 }
@@ -146,6 +195,37 @@ fn decode_errors() {
 }
 
 #[test]
+fn table_ref_not_unique() {
+    run_wast_test_file("regression/table_ref_not_unique", || {
+        vec![spectest_host_module(), aliased_table_host_module()]
+    });
+}
+
+#[test]
+fn register_shadowing() {
+    run("regression/register_shadowing");
+}
+
+#[test]
+#[cfg(target_pointer_width = "64")]
+#[cfg_attr(miri, ignore = "allocates over 2 GiB")]
+fn data_high_offset() {
+    run("regression/data_high_offset");
+}
+
+#[test]
 fn pause_resume() {
     run("regression/pause-resume");
+}
+
+#[test]
+#[should_panic = "host function return value does not match its declared type"]
+fn host_func_invalid_should_panic_none() {
+    run("regression/host_func_invalid_should_panic_none");
+}
+
+#[test]
+#[should_panic = "host function return value does not match its declared type"]
+fn host_func_invalid_should_panic_some() {
+    run("regression/host_func_invalid_should_panic_some");
 }

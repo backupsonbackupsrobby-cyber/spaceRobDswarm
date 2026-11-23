@@ -1,0 +1,411 @@
+//! Integration tests for the SpaceWasm-specific validation rejections that are
+//! driven by [`CompilerOptions`] and therefore *cannot* be expressed as a
+//! `.wast` file.
+
+use core::alloc::Layout;
+use core::ptr::NonNull;
+
+use spacewasm::{
+    AllocError, Allocator, CodeBuilder, CompilerOptions, ControlFrame, DecoderStack, Engine,
+    InnerVec, Module, OperandType, ValidationError, WasmMemoryAllocator, WasmStream,
+    global_allocator,
+};
+
+extern crate std;
+
+// `CodeBuilder::new` allocates its code pages through the global allocator on
+// the success path, so this test binary must provide the `__spacewasm_*`
+// symbols. Back them with the system heap.
+struct SystemAllocator;
+
+unsafe impl Allocator for SystemAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> Result<*mut u8, AllocError> {
+        let ptr = unsafe { std::alloc::alloc(layout) };
+        if ptr.is_null() {
+            Err(AllocError::AllocationFailed)
+        } else {
+            Ok(ptr)
+        }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe { std::alloc::dealloc(ptr, layout) }
+    }
+}
+
+global_allocator!(SystemAllocator, SystemAllocator);
+
+#[test]
+fn code_builder_rejects_oversized_max_code_pages() {
+    // `1 << 24` is the first value that does not fit the 24-bit code-page index;
+    // `CodeBuilder::new` must return an allocation error rather than panic.
+    let opts = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: 1 << 24,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+    assert!(matches!(
+        CodeBuilder::new(opts),
+        Err(AllocError::AllocationFailed)
+    ));
+
+    // One below the limit still builds successfully, pinning the boundary.
+    let opts_ok = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: (1 << 24) - 1,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+    assert!(CodeBuilder::new(opts_ok).is_ok());
+}
+
+const MAX_CONTROL_FRAMES: usize = 128;
+const MAX_STACK_DEPTH: usize = 256;
+
+/// Single-shot [`WasmStream`] that hands its whole buffer over once, then
+/// reports EOF.
+struct ByteStream {
+    buffer: Vec<u8>,
+    consumed: bool,
+}
+
+impl ByteStream {
+    fn new(data: &[u8]) -> Self {
+        Self {
+            buffer: data.to_vec(),
+            consumed: false,
+        }
+    }
+}
+
+impl WasmStream for ByteStream {
+    fn read(&mut self) -> Result<Option<InnerVec<u8>>, u8> {
+        if self.consumed {
+            return Ok(None);
+        }
+        self.consumed = true;
+        Ok(Some(unsafe {
+            InnerVec::from_raw_parts(
+                self.buffer.as_mut_ptr(),
+                self.buffer.len(),
+                self.buffer.len(),
+            )
+        }))
+    }
+
+    fn return_(&mut self, _chunk: InnerVec<u8>) {}
+}
+
+/// Backs guest linear memory with the system heap (mirrors the
+/// `RustSystemAllocator` in `tests/util/spectest.rs`). Needed because a module
+/// declaring `(memory ...)` allocates its pages during `Module::new`.
+struct GuestMemoryAllocator;
+
+impl WasmMemoryAllocator for GuestMemoryAllocator {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<u8>, AllocError> {
+        unsafe { NonNull::new(std::alloc::alloc(layout)).ok_or(AllocError::AllocationFailed) }
+    }
+
+    fn reallocate(
+        &self,
+        ptr: NonNull<u8>,
+        old_layout: Layout,
+        layout: Layout,
+    ) -> Result<NonNull<u8>, AllocError> {
+        unsafe {
+            NonNull::new(std::alloc::realloc(ptr.as_ptr(), old_layout, layout.size()))
+                .ok_or(AllocError::AllocationFailed)
+        }
+    }
+
+    fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+        unsafe { std::alloc::dealloc(ptr.as_ptr(), layout) }
+    }
+}
+
+/// Decode + validate `wasm` under `options`, returning the innermost
+/// [`ValidationError`] on rejection (or `Ok(())` if the module compiles). The
+/// backpatch/`memory.grow` checks run inside `Module::new`, so the module never
+/// needs to be pushed or executed.
+fn compile(wasm: &[u8], options: CompilerOptions) -> Result<(), ValidationError> {
+    let mut engine = Engine::new(1024, 256, spacewasm::vec![]).unwrap();
+    let mut code_builder = CodeBuilder::new(options).unwrap();
+    let mut stream = ByteStream::new(wasm);
+
+    let mut control_frames = [ControlFrame::EMPTY; MAX_CONTROL_FRAMES];
+    let mut operands = [OperandType::EMPTY; MAX_STACK_DEPTH];
+    let mut decoder_stack = DecoderStack::new(&mut control_frames, &mut operands);
+    Module::new(
+        "",
+        &mut stream,
+        &mut engine.store,
+        &mut code_builder,
+        &mut decoder_stack,
+        spacewasm::Rc::new(GuestMemoryAllocator)
+            .unwrap()
+            .into_wasm_memory_allocator(),
+    )
+    // `ParseError.err` is a `SectionDecodeError`, whose `.err` is the
+    // `ValidationError` we care about.
+    .map(|_| ())
+    .map_err(|e| e.err.err)
+}
+
+/// With `allow_memory_grow = false`, a module containing `memory.grow`
+/// must be rejected with `IllegalMemoryGrow`; with the flag enabled the same
+/// bytes compile. The harness (`.wast`) fixes the flag to `true`, so this is
+/// the only place the rejection can be exercised.
+#[test]
+fn memory_grow_rejected_when_option_disabled() {
+    // (module (memory 1) (func (drop (memory.grow (i32.const 0)))))
+    // Generated with `wat2wasm` (WABT 1.0.41).
+    const WASM: &[u8] = &[
+        0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00, // magic + version 1
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, // type section: one () -> ()
+        0x03, 0x02, 0x01, 0x00, // function section: func 0 : type 0
+        0x05, 0x03, 0x01, 0x00, 0x01, // memory section: 1 memory, min 1, no max
+        0x0A, 0x09, 0x01, 0x07, 0x00, // code section: 1 body, size 7, 0 locals
+        0x41, 0x00, // i32.const 0
+        0x40, 0x00, // memory.grow (reserved memindex 0x00)
+        0x1A, // drop
+        0x0B, // end
+    ];
+
+    let disabled = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: 256,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+    assert_eq!(
+        compile(WASM, disabled),
+        Err(ValidationError::IllegalMemoryGrow),
+    );
+
+    // Boundary: the identical bytes compile once the flag is enabled, proving
+    // the rejection is caused solely by the option, not by a malformed module.
+    let enabled = CompilerOptions {
+        allow_memory_grow: true,
+        ..disabled
+    };
+    assert!(compile(WASM, enabled).is_ok());
+}
+
+/// Must reject a module whose forward-branch backpatch chain is longer than the limit, with
+/// `PossibleBackpatchCycle` — even though the module contains no real cycle.
+/// With `max_backpatch_iterations = None` (unlimited, the harness default) the
+/// same module compiles.
+#[test]
+fn backpatch_chain_exceeding_limit_is_rejected() {
+    // (module (func (block (i32.const 0) (br_if 0)  ;; x4 )))
+    // Four `br_if 0` to the same block build a forward-jump chain of length 4;
+    // resolving it at the block `end` walks all four nodes. Generated with
+    // `wat2wasm` (WABT 1.0.41).
+    const WASM: &[u8] = &[
+        0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00, // magic + version 1
+        0x01, 0x04, 0x01, 0x60, 0x00, 0x00, // type section: one () -> ()
+        0x03, 0x02, 0x01, 0x00, // function section: func 0 : type 0
+        0x0A, 0x17, 0x01, 0x15, 0x00, // code section: 1 body, size 21, 0 locals
+        0x02, 0x40, // block (empty result type)
+        0x41, 0x00, 0x0D, 0x00, // i32.const 0 ; br_if 0
+        0x41, 0x00, 0x0D, 0x00, // i32.const 0 ; br_if 0
+        0x41, 0x00, 0x0D, 0x00, // i32.const 0 ; br_if 0
+        0x41, 0x00, 0x0D, 0x00, // i32.const 0 ; br_if 0
+        0x0B, // end (block)
+        0x0B, // end (func)
+    ];
+
+    // A chain of 4 comfortably exceeds a limit of 1.
+    let limited = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: Some(1),
+        max_code_pages: 256,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+    assert_eq!(
+        compile(WASM, limited),
+        Err(ValidationError::PossibleBackpatchCycle),
+    );
+
+    // Boundary: `None` disables the limit, so the identical (cycle-free) module
+    // compiles — proving the rejection comes from the limit, not the bytes.
+    let unlimited = CompilerOptions {
+        max_backpatch_iterations: None,
+        ..limited
+    };
+    assert!(compile(WASM, unlimited).is_ok());
+}
+
+/// Append `value` to `out` as an unsigned LEB128.
+fn write_leb_u32(out: &mut Vec<u8>, mut value: u32) {
+    loop {
+        let byte = (value & 0x7F) as u8;
+        value >>= 7;
+        if value == 0 {
+            out.push(byte);
+            return;
+        }
+        out.push(byte | 0x80);
+    }
+}
+
+/// Append a section with id `id` whose payload is `count` copies of `entry`
+/// (i.e. a `vec` of identical entries).
+fn write_vec_section(out: &mut Vec<u8>, id: u8, count: u32, entry: &[u8]) {
+    let mut payload = Vec::new();
+    write_leb_u32(&mut payload, count);
+    for _ in 0..count {
+        payload.extend_from_slice(entry);
+    }
+
+    out.push(id);
+    write_leb_u32(out, payload.len() as u32);
+    out.extend_from_slice(&payload);
+}
+
+const WASM_HEADER: &[u8] = &[0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00];
+
+/// A module defining `count` functions of type `() -> ()`, each with an empty
+/// body. Generated at runtime because a module at the 16-bit boundary is far
+/// too large to check in as a `.wast` binary literal.
+fn module_with_functions(count: u32) -> Vec<u8> {
+    let mut wasm = WASM_HEADER.to_vec();
+    write_vec_section(&mut wasm, 1, 1, &[0x60, 0x00, 0x00]); // type: () -> ()
+    write_vec_section(&mut wasm, 3, count, &[0x00]); // function: type 0
+    write_vec_section(&mut wasm, 10, count, &[0x02, 0x00, 0x0B]); // code: size 2, 0 locals, end
+    wasm
+}
+
+/// A module defining `count` immutable `i32` globals initialized to `0`.
+/// Generated at runtime for the same reason as [`module_with_functions`].
+fn module_with_globals(count: u32) -> Vec<u8> {
+    let mut wasm = WASM_HEADER.to_vec();
+    // global: i32, const, `i32.const 0` `end`
+    write_vec_section(&mut wasm, 6, count, &[0x7F, 0x00, 0x41, 0x00, 0x0B]);
+    wasm
+}
+
+/// Module-defined functions are referenced by a 16-bit `Ref::Module` index, so
+/// a function section declaring more than `u16::MAX` entries must be rejected
+/// with `IdxTooLarge` rather than silently truncating the index.
+#[test]
+fn function_count_exceeding_u16_is_rejected() {
+    let options = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: 1024,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+
+    assert_eq!(
+        compile(&module_with_functions(u16::MAX as u32 + 1), options),
+        Err(ValidationError::IdxTooLarge),
+    );
+
+    // Boundary: exactly `u16::MAX` functions still fit the index and compile.
+    assert!(compile(&module_with_functions(u16::MAX as u32), options).is_ok());
+}
+
+/// Module-defined globals are referenced by a 16-bit `Ref::Module` index, so
+/// a global section declaring more than `u16::MAX` entries must be rejected
+/// with `IdxTooLarge` rather than silently truncating the index.
+#[test]
+fn global_count_exceeding_u16_is_rejected() {
+    let options = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: 256,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+
+    assert_eq!(
+        compile(&module_with_globals(u16::MAX as u32 + 1), options),
+        Err(ValidationError::IdxTooLarge),
+    );
+
+    // Boundary: exactly `u16::MAX` globals still fit the index and compile.
+    assert!(compile(&module_with_globals(u16::MAX as u32), options).is_ok());
+}
+
+/// A module with one function of `params` `i32` parameters and `locals` `i32`
+/// locals in a single bucket, whose body is `local.get <get>` `drop`.
+fn module_with_locals(params: u32, locals: u32, get: u32) -> Vec<u8> {
+    let mut wasm = WASM_HEADER.to_vec();
+
+    // type: (i32 x params) -> ()
+    let mut ty = vec![0x60];
+    write_leb_u32(&mut ty, params);
+    ty.extend(std::iter::repeat_n(0x7F, params as usize));
+    ty.push(0x00);
+    write_vec_section(&mut wasm, 1, 1, &ty);
+
+    write_vec_section(&mut wasm, 3, 1, &[0x00]); // function: type 0
+
+    // body: 1 local bucket of `locals` i32, `local.get get`, `drop`, `end`
+    let mut body = vec![0x01];
+    write_leb_u32(&mut body, locals);
+    body.push(0x7F);
+    body.push(0x20);
+    write_leb_u32(&mut body, get);
+    body.extend_from_slice(&[0x1A, 0x0B]);
+    let mut entry = Vec::new();
+    write_leb_u32(&mut entry, body.len() as u32);
+    entry.extend_from_slice(&body);
+    write_vec_section(&mut wasm, 10, 1, &entry);
+
+    wasm
+}
+
+/// The local index space (parameters plus locals) can exceed `u16::MAX`. Looking
+/// up a local in such a function must not overflow the index accumulator, which
+/// panicked with overflow checks on and rejected valid modules without them.
+#[test]
+fn local_index_space_exceeding_u16_compiles() {
+    let options = CompilerOptions {
+        allow_memory_grow: false,
+        max_backpatch_iterations: None,
+        max_code_pages: 256,
+        #[cfg(feature = "ir-map")]
+        pc_ir_callback: None,
+    };
+
+    // 255 + 65,281 = 65,536 indices, while the frame (65,281 words + 2 header
+    // + 1 operand) still fits the 16-bit frame limit.
+    const PARAMS: u32 = 255;
+    const LOCALS: u32 = 65_281;
+
+    // A parameter, and the first local: finding it already sums the whole
+    // bucket past `u16::MAX`.
+    for get in [0, PARAMS] {
+        assert_eq!(
+            compile(&module_with_locals(PARAMS, LOCALS, get), options),
+            Ok(()),
+            "local.get {get}"
+        );
+    }
+
+    // Locals beyond the 16-bit signed frame offset cannot be addressed.
+    assert_eq!(
+        compile(
+            &module_with_locals(PARAMS, LOCALS, PARAMS + LOCALS - 1),
+            options
+        ),
+        Err(ValidationError::LocalIdxOutOfRange),
+    );
+
+    // One past the last local is out of range.
+    assert_eq!(
+        compile(
+            &module_with_locals(PARAMS, LOCALS, PARAMS + LOCALS),
+            options
+        ),
+        Err(ValidationError::LocalIdxOutOfRange),
+    );
+}

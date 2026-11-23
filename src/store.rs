@@ -11,11 +11,8 @@ pub struct Store {
 }
 
 impl Store {
-    /// Construct a store from a runtime-built collection of host modules,
-    /// rather than a const-sized array. Useful for embedders (e.g. the C FFI
-    /// layer) that accumulate host modules dynamically. Returns
-    /// [`AllocError::OutOfMemory`] if `max_modules` exceeds the 256-module
-    /// limit, instead of panicking.
+    /// Create a store from host modules built at runtime, with room for
+    /// `max_modules` (<= 256) guest modules.
     pub fn from_host_modules(
         max_modules: usize,
         host_modules: Vec<HostModule>,
@@ -25,7 +22,7 @@ impl Store {
         }
 
         Ok(Store {
-            modules: Vec::new(max_modules as u32)?,
+            modules: Vec::new(max_modules)?,
             host_modules,
             zero_memory: Rc::new(Memory::zero())?,
             zero_table: Rc::new_slice_with_default(0)?,
@@ -59,14 +56,14 @@ impl Store {
         self.modules.pop()
     }
 
-    /// Push a module onto the store
-    /// Panics if the store is at capacity
+    /// Append a module. [`AllocError::OutOfMemory`] if the store is full.
     #[inline(always)]
-    pub fn push_module(&mut self, module: Module) {
-        self.modules.push(module);
+    pub fn push_module(&mut self, module: Module) -> Result<ModuleRef, AllocError> {
+        self.modules.try_push(module)?;
+        Ok(ModuleRef((self.modules.len() - 1) as u8))
     }
 
-    pub fn get_memory(&mut self, module_ref: ModuleRef) -> &Rc<Memory> {
+    pub fn get_memory(&self, module_ref: ModuleRef) -> &Rc<Memory> {
         match &self.modules[module_ref.0 as usize].memory {
             None => &self.zero_memory,
             Some(MemoryKind::Owned(mem)) => mem,
@@ -85,7 +82,7 @@ impl Store {
         }
     }
 
-    pub fn get_table(&mut self, module_ref: ModuleRef) -> &Rc<[TableElement]> {
+    pub fn get_table(&self, module_ref: ModuleRef) -> &Rc<[TableElement]> {
         match &self.modules[module_ref.0 as usize].table {
             None => &self.zero_table,
             Some(TableKind::Owned(table)) => &table.0,
@@ -105,6 +102,8 @@ impl Store {
         }
     }
 
+    /// A module's linear memory. A module without one gets the shared zero-memory
+    /// sentinel: check [`Memory::is_zero`] before mutating.
     pub fn get_memory_mut(&mut self, module_ref: ModuleRef) -> &mut Rc<Memory> {
         match &self.modules[module_ref.0 as usize].memory {
             None => &mut self.zero_memory,
@@ -151,16 +150,27 @@ impl Engine {
             module: ModuleRef(0),
             store,
             result: None,
-            host_pause_result: None,
+            host_pause: None,
+            trap_pc: None,
+            trap_fp: 0,
         })
     }
 
+    /// Abandons any call and resets execution state: program counter, stack,
+    /// pending result, host pause and trap. Loaded modules stay loaded.
+    ///
+    /// Module memories, tables and globals are not cleared, so the next call
+    /// observes whatever earlier calls wrote. This is also not a recovery path
+    /// after a failed module load (see [`Module::new`]).
     pub fn reset(&mut self) {
         self.pc = JumpTarget::SENTINEL;
         self.sp = 0;
         self.fp = 0;
         self.jumped = false;
         self.result = None;
+        self.host_pause = None;
+        self.trap_pc = None;
+        self.trap_fp = 0;
         self.clear_memory();
         self.clear_table();
     }
@@ -173,12 +183,10 @@ impl Engine {
         self.table = self.store.zero_table.clone();
     }
 
-    /// Append a module to the store without running its start function.
-    /// Note: The start function still needs to be run (if there is one)
-    /// Returns the ModuleRef of the new module
-    pub fn push_module(&mut self, module: Module) -> ModuleRef {
-        self.store.modules.push(module);
-        ModuleRef((self.store.modules.len() - 1) as u8)
+    /// Append a module without running its start function. An `Err` invalidates
+    /// the engine; see [`Module::new`].
+    pub fn push_module(&mut self, module: Module) -> Result<ModuleRef, AllocError> {
+        self.store.push_module(module)
     }
 
     /// Returns `true` if the engine is idle (not currently executing)
@@ -187,52 +195,43 @@ impl Engine {
         self.pc == JumpTarget::SENTINEL
     }
 
+    /// Returns `true` if a host function has paused the engine and it is waiting on
+    /// [`Engine::resume`]. Running a paused engine executes nothing.
+    #[inline(always)]
+    pub fn is_paused(&self) -> bool {
+        self.host_pause.is_some()
+    }
+
     /// Returns `true` if the module at `module_ref` declares a start function
     /// that must be run before the module is used.
     pub fn needs_start(&self, module_ref: ModuleRef) -> bool {
         self.store.modules()[module_ref.0 as usize].start.is_some()
     }
 
-    /// Invoke the module's start function for execution, if it declares one.
-    ///
-    /// The interpreter must be idle (no invocation in flight), matching the
-    /// preconditions of [`Engine::invoke`].
-    pub fn invoke_start(&mut self, module_ref: ModuleRef) -> StartInvocation {
-        let Some(start) = self
+    /// Get the reference to a module's start function
+    /// If the module does not have a start function, return None
+    pub fn module_start(&self, module_ref: ModuleRef) -> Option<WasmRef> {
+        if let Some(start) = self
             .store
             .modules()
             .get(module_ref.0 as usize)
             .and_then(|m| m.start)
-        else {
-            return StartInvocation::Finished;
-        };
-
-        match start {
-            // A local or cross-module Wasm start function is seeded like a
-            // normal invocation; the caller runs the interpreter to drive it.
-            Ref::Module(index) => self.setup_start_invoke(WasmRef {
-                module: module_ref,
-                index,
-            }),
-            Ref::Extern { module, index } => self.setup_start_invoke(WasmRef { module, index }),
-            // Host start functions run immediately; no interpreter loop needed.
-            Ref::Host { module, index } => match self.call_host_fn(module, index, &[]) {
-                HostFunctionResult::Continue(_) => StartInvocation::Finished,
-                HostFunctionResult::Break(HostFunctionBreak::Trap) => {
-                    StartInvocation::Trap(TrapReason::Host)
-                }
-                HostFunctionResult::Break(HostFunctionBreak::Pause) => StartInvocation::Pause,
-            },
-        }
-    }
-
-    fn setup_start_invoke(&mut self, f_ref: WasmRef) -> StartInvocation {
-        match self.invoke(f_ref, &[]) {
-            Ok(()) => StartInvocation::Running,
-            Err(InvokeError::StackOverflow) => StartInvocation::Trap(TrapReason::StackOverflow),
-            // The start function is validated to be `[] -> []`, so parameter
-            // length/type mismatches cannot occur.
-            Err(_) => unreachable!(),
+        {
+            // Unwrap the Ref -> WasmRef since we do not allow start mapped to host functions
+            match start {
+                // A local or cross-module Wasm start function is seeded like a
+                // normal invocation; the caller runs the interpreter to drive it.
+                Ref::Module(index) => Some(WasmRef {
+                    module: module_ref,
+                    index,
+                }),
+                Ref::Extern { module, index } => Some(WasmRef { module, index }),
+                // Mapping start to host functions is not supported in spacewasm
+                // This should have already been checked in the loader
+                Ref::Host { .. } => unreachable!(),
+            }
+        } else {
+            None
         }
     }
 
@@ -242,21 +241,11 @@ impl Engine {
         index: u16,
         args: &[Value],
     ) -> HostFunctionResult {
-        let f = self.store.host_modules[module.0 as usize].functions[index as usize].get_call();
+        let f = self.store.host_modules[module.0 as usize].functions[index as usize]
+            .get_call()
+            .expect("host function is already executing");
         let r = f(self, args);
         self.store.host_modules[module.0 as usize].functions[index as usize].finish_call(f);
         r
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StartInvocation {
-    /// There was no start function, or a host start function completed.
-    Finished,
-    /// A Wasm start function was invoked, need to spin the interpreter
-    Running,
-    /// A host start function trapped.
-    Trap(TrapReason),
-    /// A host start function paused
-    Pause,
 }

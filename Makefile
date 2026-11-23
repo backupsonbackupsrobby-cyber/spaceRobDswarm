@@ -1,4 +1,158 @@
-﻿build:
-    cargo build --release
-clean:
-    cargo clean
+.PHONY: help fuzz fuzz-validate fuzz-validate-differential fuzz-malformed fuzz-exec-differential fuzz-cmin fuzz-corpus-init fuzz-corpus-pull fuzz-corpus-push seed-to-wasm trace-wasm trace-wasm-debug trace trace-debug clean-artifacts gen-header
+
+# Target Configuration (auto-detect if not set)
+SPACEWASM_TARGET ?= $(shell rustc -vV | grep 'host:' | cut -d' ' -f2)
+
+# Number of parallel fuzzer workers (libFuzzer -jobs/-workers)
+JOBS ?= 1
+
+# Run a fuzz target. With JOBS > 1, each worker logs to fuzz/logs/<target>/fuzz-<N>.log
+define run_fuzz
+	@if [ "$(JOBS)" -gt 1 ]; then \
+		mkdir -p fuzz/logs/$(1) && cd fuzz/logs/$(1) && \
+		echo "Running $(JOBS) workers, logs in fuzz/logs/$(1)/fuzz-<N>.log" && \
+		cargo +nightly fuzz run --fuzz-dir $(CURDIR)/fuzz $(1) --target $(SPACEWASM_TARGET) -- -jobs=$(JOBS) -workers=$(JOBS); \
+	else \
+		cargo +nightly fuzz run $(1) --target $(SPACEWASM_TARGET); \
+	fi
+endef
+
+# Default target
+help:
+	@echo "SpaceWasm Fuzzing Targets"
+	@echo ""
+	@echo "Configuration:"
+	@echo "  SPACEWASM_TARGET=<triple>   Target architecture (default: $(SPACEWASM_TARGET))"
+	@echo "  JOBS=<n>                    Parallel fuzzer workers (default: 1)"
+	@echo ""
+	@echo "Fuzzing:"
+	@echo "  make fuzz                          Run the no-traps fuzzer"
+	@echo "  make fuzz-validate                 Run the validate fuzzer"
+	@echo "  make fuzz-validate-differential    Run the validate differential fuzzer (SpaceWasm vs wasmi)"
+	@echo "  make fuzz-malformed                Run the malformed-input decoder fuzzer"
+	@echo "  make fuzz-exec-differential       Run the execution differential fuzzer (SpaceWasm vs wasmi)"
+	@echo "  make fuzz-cmin FUZZER=<name>       Minimize a fuzzer's corpus in place (e.g. FUZZER=exec-differential)"
+	@echo ""
+	@echo "Shared Corpus (the fuzz-corpus draft release, used by CI):"
+	@echo "  make fuzz-corpus-init              Create the draft release (once per repository)"
+	@echo "  make fuzz-corpus-pull [FUZZER=..]  Merge the shared corpus into fuzz/corpus"
+	@echo "  make fuzz-corpus-push [FUZZER=..]  Pull, minimize and upload fuzz/corpus"
+	@echo ""
+	@echo "Crash Analysis:"
+	@echo "  make trace CRASH=<file>            Convert seed + trace (release)"
+	@echo "  make trace-debug CRASH=<file>      Convert seed + trace (debug with ASAN)"
+	@echo "  make seed-to-wasm CRASH=<file>     Convert fuzzer seed to Wasm"
+	@echo "  make trace-wasm WASM=<file>        Trace Wasm file (release)"
+	@echo "  make trace-wasm-debug WASM=<file>  Trace Wasm file (debug with ASAN)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make fuzz JOBS=18"
+	@echo "  make trace CRASH=fuzz/artifacts/no-traps/crash-abc123"
+	@echo "  make trace-debug CRASH=crash-abc123 LIMIT=100"
+	@echo "  make trace-wasm WASM=output.wasm LIMIT=50"
+	@echo ""
+	@echo "C API:"
+	@echo "  make gen-header                    Regenerate crates/spacewasm_c_api/include/spacewasm.h with cbindgen"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  make clean-artifacts               Delete all fuzzer artifacts"
+
+# Run fuzzer
+fuzz:
+	$(call run_fuzz,no-traps)
+
+fuzz-validate:
+	$(call run_fuzz,validate)
+
+fuzz-validate-differential:
+	$(call run_fuzz,validate-differential)
+
+fuzz-malformed:
+	$(call run_fuzz,malformed)
+
+fuzz-exec-differential:
+	$(call run_fuzz,exec-differential)
+
+# Minimize a fuzzer's corpus in place (fuzz/corpus/<FUZZER>)
+fuzz-cmin:
+	@if [ -z "$(FUZZER)" ]; then \
+		echo "Error: FUZZER variable required"; \
+		echo "Usage: make fuzz-cmin FUZZER=exec-differential"; \
+		exit 1; \
+	fi
+	cargo +nightly fuzz cmin $(FUZZER) --target $(SPACEWASM_TARGET)
+
+# Sync fuzz/corpus with the shared corpus in the `fuzz-corpus` draft release.
+# Without FUZZER, every fuzz target is synced.
+fuzz-corpus-init:
+	.github/scripts/fuzz-corpus.sh init
+
+fuzz-corpus-pull:
+	.github/scripts/fuzz-corpus.sh pull $(FUZZER)
+
+fuzz-corpus-push:
+	SPACEWASM_TARGET=$(SPACEWASM_TARGET) .github/scripts/fuzz-corpus.sh push $(FUZZER)
+
+# Convert seed to Wasm and trace execution (release mode)
+trace:
+	@if [ -z "$(CRASH)" ]; then \
+		echo "Error: CRASH variable required"; \
+		echo "Usage: make trace CRASH=fuzz/artifacts/no-traps/crash-xxx"; \
+		exit 1; \
+	fi
+	@echo "Converting seed to Wasm and tracing execution (release mode)..."
+	@cargo run --release --manifest-path fuzz/Cargo.toml -p spacewasm-fuzzing --bin seed_to_wasm --target $(SPACEWASM_TARGET) -- $(if $(TARGET),--target $(TARGET)) $(CRASH) --stdout 2>/dev/null | \
+		cargo run --release -p spacewasm_tools --features strict-assertions --bin spacewasm --target $(SPACEWASM_TARGET) -- trace --limit $(or $(LIMIT),50)
+
+# Convert seed to Wasm and trace execution (debug mode with ASAN)
+trace-debug:
+	@if [ -z "$(CRASH)" ]; then \
+		echo "Error: CRASH variable required"; \
+		echo "Usage: make trace-debug CRASH=fuzz/artifacts/no-traps/crash-xxx"; \
+		exit 1; \
+	fi
+	@echo "Converting seed to Wasm and tracing execution (debug mode with ASAN)..."
+	@cargo run --manifest-path fuzz/Cargo.toml -p spacewasm-fuzzing --bin seed_to_wasm --target $(SPACEWASM_TARGET) -- $(if $(TARGET),--target $(TARGET)) $(CRASH) --stdout 2>/dev/null | \
+		RUSTFLAGS="-Zsanitizer=address" cargo +nightly run --target $(SPACEWASM_TARGET) -p spacewasm_tools --features strict-assertions --bin spacewasm -- trace --limit $(or $(LIMIT),50)
+
+# Convert fuzzer seed to Wasm
+seed-to-wasm:
+	@if [ -z "$(CRASH)" ]; then \
+		echo "Error: CRASH variable required"; \
+		echo "Usage: make seed-to-wasm CRASH=fuzz/artifacts/no-traps/crash-xxx [OUT=output.wasm]"; \
+		exit 1; \
+	fi
+	@if [ -n "$(OUT)" ]; then \
+		cargo run --release --manifest-path fuzz/Cargo.toml -p spacewasm-fuzzing --bin seed_to_wasm --target $(SPACEWASM_TARGET) -- $(if $(TARGET),--target $(TARGET)) $(CRASH) $(OUT); \
+	else \
+		cargo run --release --manifest-path fuzz/Cargo.toml -p spacewasm-fuzzing --bin seed_to_wasm --target $(SPACEWASM_TARGET) -- $(if $(TARGET),--target $(TARGET)) $(CRASH) $(CRASH).wasm; \
+	fi
+
+# Trace Wasm file execution (release mode)
+trace-wasm:
+	@if [ -z "$(WASM)" ]; then \
+		echo "Error: WASM variable required"; \
+		echo "Usage: make trace-wasm WASM=file.wasm [LIMIT=50]"; \
+		exit 1; \
+	fi
+	cargo run --release -p spacewasm_tools --features strict-assertions --bin spacewasm --target $(SPACEWASM_TARGET) -- trace $(WASM) --limit $(or $(LIMIT),200)
+
+# Trace Wasm file execution (debug mode with ASAN)
+trace-wasm-debug:
+	@if [ -z "$(WASM)" ]; then \
+		echo "Error: WASM variable required"; \
+		echo "Usage: make trace-wasm-debug WASM=file.wasm [LIMIT=50]"; \
+		exit 1; \
+	fi
+	RUSTFLAGS="-Zsanitizer=address" cargo run --target $(SPACEWASM_TARGET) -p spacewasm_tools --features strict-assertions --bin spacewasm -- trace $(WASM) --limit $(or $(LIMIT),200)
+
+# Regenerate the C API header from the Rust source with cbindgen. The header is
+# written as a side effect of building spacewasm_c_api with the `codegen` feature.
+gen-header:
+	cargo build -p spacewasm_c_api --features codegen
+	@echo "Regenerated crates/spacewasm_c_api/include/spacewasm.h"
+
+# Clean fuzzer artifacts
+clean-artifacts:
+	rm -rf fuzz/artifacts/* fuzz/logs
+	@echo "Cleaned fuzzer artifacts"

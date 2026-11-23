@@ -13,7 +13,6 @@ const MAX_HOST_PARAMS: usize = 32;
 
 /// Opaque handle passed to C host callbacks, wrapping a borrowed core
 /// [`Engine`]. Valid only for the duration of the call.
-#[repr(C)]
 pub struct SpacewasmCaller;
 
 impl SpacewasmCaller {
@@ -46,12 +45,15 @@ pub type spacewasm_host_fn_t = Option<
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum spacewasm_hostcall_result_t {
+    /// Continue, do not return a value
+    SPACEWASM_CONTINUE_NONE = 0,
     /// Continue; populate `out_result` if the function has a result type.
-    SPACEWASM_CONTINUE = 0,
+    SPACEWASM_CONTINUE_SOME = 1,
     /// Trap the interpreter.
-    SPACEWASM_TRAP = 1,
-    /// Pause the interpreter (cooperative yield).
-    SPACEWASM_PAUSE = 2,
+    SPACEWASM_TRAP = 2,
+    /// Pause the interpreter. [`spacewasm_run`](crate::capi::spacewasm_run)
+    /// returns `SPACEWASM_RUN_PAUSE` until resumed.
+    SPACEWASM_PAUSE = 3,
 }
 
 /// A C function pointer plus its (embedder-owned) user data, stored inside the
@@ -84,7 +86,7 @@ impl CHostFunction {
     /// Invoke the C callback for a guest→host call: marshal the arguments,
     /// expose the state as an opaque caller handle, and translate the result
     /// back into spacewasm's `ControlFlow` outcome.
-    pub(crate) fn call(&self, state: &Engine, args: &[Value]) -> HostFunctionResult {
+    pub(crate) fn call(&self, state: &mut Engine, args: &[Value]) -> HostFunctionResult {
         if args.len() > MAX_HOST_PARAMS {
             return ControlFlow::Break(HostFunctionBreak::Trap);
         }
@@ -105,7 +107,7 @@ impl CHostFunction {
 
         // Expose the borrowed state as an opaque caller pointer. The callback
         // may only use it for the duration of this call.
-        let caller = state as *const Engine as *mut SpacewasmCaller;
+        let caller = state as *mut Engine as *mut SpacewasmCaller;
 
         // SAFETY: `f` is a valid C function pointer supplied at registration.
         let outcome = unsafe {
@@ -119,8 +121,12 @@ impl CHostFunction {
         };
 
         match outcome {
-            spacewasm_hostcall_result_t::SPACEWASM_CONTINUE => {
-                ControlFlow::Continue(Some(out_result.to_value()))
+            spacewasm_hostcall_result_t::SPACEWASM_CONTINUE_NONE => ControlFlow::Continue(None),
+            spacewasm_hostcall_result_t::SPACEWASM_CONTINUE_SOME => {
+                match out_result.try_to_value() {
+                    Some(v) => ControlFlow::Continue(Some(v)),
+                    None => panic!("invalid out_result type"),
+                }
             }
             spacewasm_hostcall_result_t::SPACEWASM_TRAP => {
                 ControlFlow::Break(HostFunctionBreak::Trap)

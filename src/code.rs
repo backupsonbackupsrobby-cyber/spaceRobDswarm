@@ -19,21 +19,30 @@ impl Expr {
         Ok(value.unwrap())
     }
 
-    pub fn read<const MAX_CONTROL_FRAMES: usize, const MAX_STACK_DEPTH: usize>(
+    pub fn read(
         wasm: &mut Reader,
         builder: &mut CodeBuilder,
         store: &Store,
         module: &Module,
         ctx: &Func,
+        stack: &mut DecoderStack,
     ) -> Result<(Self, u16), ValidationError> {
+        // Each operand may occupy up to 2 words, so the high-water mark is
+        // bounded by `2 * DecoderStack::MAX_OPERANDS`, which fits the u16 field
+        // below, so the runtime check is dead.
         let e = Expr(builder.pc());
-        let tb = &mut TextBuilder::new(builder, store, module, ctx);
-        wasm.read_code(
-            &Compiler::<'_, MAX_CONTROL_FRAMES, MAX_STACK_DEPTH>::default(),
-            tb,
-        )?;
+        let tb = &mut TextBuilder::new(builder, store, module, ctx, stack)?;
+        wasm.read_code(&Compiler::default(), tb)?;
 
-        Ok((e, tb.stack_usage() as u16))
+        // Reject a function whose shallow stack high-water exceeds the u16
+        // `Func::stack_usage` field rather than silently truncating it (which
+        // would let `call_impl`'s capacity check pass and write past the stack).
+        let usage = tb.stack_usage();
+        if usage > u16::MAX as usize {
+            return Err(ValidationError::StackTooLarge);
+        }
+
+        Ok((e, usage as u16))
     }
 }
 
@@ -58,56 +67,94 @@ pub struct Func {
     /// Parameter size in 32-bit words
     pub parameter_size: u8,
 
-    /// Return value size in 32-bit words
+    /// Return value type, or `None` if the function returns nothing
     pub return_ty: Option<ValType>,
 
     /// Local variables allocated in this functions frame
     /// Read in the code section
-    pub locals: Vec<(u16, ValType)>,
+    pub locals: Box<[(u16, ValType)]>,
 
     /// Functions entry point
     pub expr: Expr,
 }
 
+impl Func {
+    /// Stack words a call to this function needs above the caller's stack
+    /// pointer: the two-word call frame, the locals, and the peak operand usage.
+    #[inline]
+    pub fn required_stack_words(&self) -> usize {
+        self.stack_usage as usize + 2 + self.local_size as usize
+    }
+}
+
 impl Module {
-    pub fn read_function_code<const MAX_CONTROL_FRAMES: usize, const MAX_STACK_DEPTH: usize>(
+    pub fn read_function_code(
         &mut self,
         wasm: &mut Reader,
         store: &Store,
         builder: &mut CodeBuilder,
+        stack: &mut DecoderStack,
         i: usize,
     ) -> Result<(), ValidationError> {
         let size = wasm.read_u32()?;
         let start = wasm.offset();
 
-        let empty_f = self.functions[i].clone();
-        let mut f = core::mem::replace(&mut self.functions[i], empty_f);
+        let placeholder = {
+            let f = &self.functions[i];
+            Func {
+                ty: f.ty,
+                stack_usage: f.stack_usage,
+                local_size: f.local_size,
+                parameter_size: f.parameter_size,
+                return_ty: f.return_ty,
+                locals: Vec::zero().into(),
+                expr: Expr::zero(),
+            }
+        };
 
-        f.locals = wasm.read_vec(|w| {
-            let n = w.read_u32()?;
-            let t = ValType::read(w)?;
+        let mut f = core::mem::replace(&mut self.functions[i], placeholder);
 
-            if n > 0xFFFF {
+        wasm.with_limit(size as usize, |wasm| {
+            f.locals = wasm
+                .read_vec(|w| {
+                    let n = w.read_u32()?;
+                    let t = ValType::read(w)?;
+
+                    if n > 0xFFFF {
+                        return Err(ValidationError::TooManyLocals);
+                    }
+
+                    Ok((n as u16, t))
+                })?
+                .into();
+
+            // Compute the local size in words
+            let mut total_size: usize = 0;
+            for (n, ty) in f.locals.iter() {
+                total_size = (*n as usize)
+                    .checked_mul(ty.size())
+                    .and_then(|v| total_size.checked_add(v))
+                    .ok_or(ValidationError::TooManyLocals)?;
+            }
+            let size_in_words = total_size / 4;
+
+            if size_in_words > 0xFFFF {
                 return Err(ValidationError::TooManyLocals);
             }
 
-            Ok((n as u16, t))
+            f.local_size = size_in_words as u16;
+            (f.expr, f.stack_usage) = Expr::read(wasm, builder, store, self, &f, stack)?;
+
+            Ok(())
         })?;
 
-        // Compute the local size in words
-        let size_in_words = f
-            .locals
-            .iter()
-            .fold(0, |sum, (n, ty)| sum + (*n as usize) * ty.size())
-            / 4;
-
-        if size_in_words > 0xFFFF {
-            return Err(ValidationError::TooManyLocals);
+        // Bound the worst-case call frame this function can produce. When a
+        // function performs a call, the frame it leaves behind is
+        // `2 (frame header) + local_size + operand height at the call site`.
+        let max_frame_length = 2 + f.local_size as usize + f.stack_usage as usize;
+        if max_frame_length > 0xFFFF {
+            return Err(ValidationError::StackTooLarge);
         }
-
-        f.local_size = size_in_words as u16;
-        (f.expr, f.stack_usage) =
-            Expr::read::<MAX_CONTROL_FRAMES, MAX_STACK_DEPTH>(wasm, builder, store, self, &f)?;
 
         let _ = core::mem::replace(&mut self.functions[i], f);
 
@@ -160,6 +207,9 @@ impl<'wasm> Reader<'wasm> {
 
         use crate::opcode::*;
         loop {
+            #[cfg(feature = "ir-map")]
+            visitor.before_instruction(state, self.offset())?;
+
             match self.read_u8()? {
                 // Control instructions
                 UNREACHABLE => instruction!(unreachable),
@@ -268,11 +318,11 @@ impl<'wasm> Reader<'wasm> {
                     visitor.i64_const(n, state)?;
                 }
                 F32_CONST => {
-                    let z = f32::from_bits(self.read_f32()?);
+                    let z = f32::from_bits(self.read_f32_bits()?);
                     visitor.f32_const(z, state)?;
                 }
                 F64_CONST => {
-                    let z = f64::from_bits(self.read_f64()?);
+                    let z = f64::from_bits(self.read_f64_bits()?);
                     visitor.f64_const(z, state)?;
                 }
 
@@ -416,6 +466,31 @@ impl<'wasm> Reader<'wasm> {
                 I64_REINTERPRET_F64 => instruction!(i64_reinterpret_f64),
                 F32_REINTERPRET_I32 => instruction!(f32_reinterpret_i32),
                 F64_REINTERPRET_I64 => instruction!(f64_reinterpret_i64),
+
+                // Sign Extension
+                I32_EXTEND_8_S => instruction!(i32_extend8_s),
+                I32_EXTEND_16_S => instruction!(i32_extend16_s),
+                I64_EXTEND_8_S => instruction!(i64_extend8_s),
+                I64_EXTEND_16_S => instruction!(i64_extend16_s),
+                I64_EXTEND_32_S => instruction!(i64_extend32_s),
+
+                // FC Extensions
+                EXTENDED_FC => {
+                    let ext = self.read_u32()?;
+                    match ext {
+                        // Non-trapping float-to-int
+                        fc::I32_TRUNC_SAT_F32_S => instruction!(i32_trunc_sat_f32_s),
+                        fc::I32_TRUNC_SAT_F32_U => instruction!(i32_trunc_sat_f32_u),
+                        fc::I32_TRUNC_SAT_F64_S => instruction!(i32_trunc_sat_f64_s),
+                        fc::I32_TRUNC_SAT_F64_U => instruction!(i32_trunc_sat_f64_u),
+                        fc::I64_TRUNC_SAT_F32_S => instruction!(i64_trunc_sat_f32_s),
+                        fc::I64_TRUNC_SAT_F32_U => instruction!(i64_trunc_sat_f32_u),
+                        fc::I64_TRUNC_SAT_F64_S => instruction!(i64_trunc_sat_f64_s),
+                        fc::I64_TRUNC_SAT_F64_U => instruction!(i64_trunc_sat_f64_u),
+
+                        _ => Err(ValidationError::InvalidFcOpcode(ext as u8))?,
+                    }
+                }
 
                 op => Err(ValidationError::InvalidOpcode(op))?,
             }

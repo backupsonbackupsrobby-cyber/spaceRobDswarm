@@ -38,8 +38,13 @@ impl Store {
                 for (fi, f) in module.functions.iter().enumerate() {
                     if f.name() == name {
                         // Validate the function signature
+                        let return_vals: &[ValType] = match f.returns().0 {
+                            Some(v) => &[v],
+                            None => &[],
+                        };
+
                         return if f.params() == expected_ty.params[..]
-                            && f.returns() == expected_ty.returns[..]
+                            && return_vals == &expected_ty.returns[..]
                         {
                             Ok(Import::HostFunc {
                                 module: HostModuleRef::new(mi),
@@ -102,8 +107,13 @@ impl Store {
                                     let hm = &self.host_modules()[module.0 as usize];
                                     let f = &hm.functions[index as usize];
 
+                                    let return_vals: &[ValType] = match f.returns().0 {
+                                        Some(v) => &[v],
+                                        None => &[],
+                                    };
+
                                     if f.params() == expected_ty.params[..]
-                                        && f.returns() == expected_ty.returns[..]
+                                        && return_vals == &expected_ty.returns[..]
                                     {
                                         Ok(Import::HostFunc { module, index })
                                     } else {
@@ -136,7 +146,7 @@ impl Store {
                         return if g.value.ty() != expected_ty.ty {
                             Err(ValidationError::GlobalImportTypeMismatch)
                         } else if g.value.mutable() != expected_ty.mutable {
-                            Err(ValidationError::GlobalIsNotMutable)
+                            Err(ValidationError::GlobalNotMutable)
                         } else {
                             Ok(Import::HostGlobal {
                                 module: HostModuleRef::new(mi),
@@ -166,7 +176,7 @@ impl Store {
                                     if g.type_.ty != expected_ty.ty {
                                         Err(ValidationError::GlobalImportTypeMismatch)
                                     } else if expected_ty.mutable != g.type_.mutable {
-                                        Err(ValidationError::GlobalIsNotMutable)
+                                        Err(ValidationError::GlobalNotMutable)
                                     } else {
                                         Ok(Import::Global {
                                             module: ModuleRef(mi as u8),
@@ -180,7 +190,7 @@ impl Store {
                                     if g.type_.ty != expected_ty.ty {
                                         Err(ValidationError::GlobalImportTypeMismatch)
                                     } else if expected_ty.mutable != g.type_.mutable {
-                                        Err(ValidationError::GlobalIsNotMutable)
+                                        Err(ValidationError::GlobalNotMutable)
                                     } else {
                                         Ok(Import::Global { module, index })
                                     }
@@ -191,7 +201,7 @@ impl Store {
                                     if g.value.ty() != expected_ty.ty {
                                         Err(ValidationError::GlobalImportTypeMismatch)
                                     } else if expected_ty.mutable != g.value.mutable() {
-                                        Err(ValidationError::GlobalIsNotMutable)
+                                        Err(ValidationError::GlobalNotMutable)
                                     } else {
                                         Ok(Import::HostGlobal { module, index })
                                     }
@@ -228,8 +238,6 @@ impl Store {
                         });
                     }
                 }
-
-                return Err(ValidationError::TableImportNotFound);
             }
         }
 

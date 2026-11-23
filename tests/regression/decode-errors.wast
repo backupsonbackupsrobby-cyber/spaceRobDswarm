@@ -39,6 +39,17 @@
   "size minimum must not be greater than maximum")
 
 ;; ---------------------------------------------------------------------------
+;; A table whose `limits.min` is used unbounded as an allocation length is
+;; rejected at decode time (symmetric with the memory-size bound). Left
+;; unchecked, `min` drove a panic on 32-bit targets (Layout::array failure) or
+;; a multi-gigabyte allocation on 64-bit hosts.
+;; table section (id 4): count=1, funcref, flag=0x00 (min only), min=0xFFFFFFFF
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module binary "\00asm\01\00\00\00\04\08\01\70\00\ff\ff\ff\ff\0f")
+  "table size too large")
+
+;; ---------------------------------------------------------------------------
 ;; Memory type flag with the "shared" bit (bit 1) set is unsupported.
 ;; memory section (id 5): count=1, flag 0x02, min 0
 ;; ---------------------------------------------------------------------------
@@ -109,3 +120,73 @@
 (assert_malformed
   (module binary "\00asm\01\00\00\00\0c\01\00")
   "malformed section id")
+
+;; ---------------------------------------------------------------------------
+;; We normally accept up to 0xFFFF locals but the real check if whether it's
+;; 16-bit word offset overflows i16::MAX. This is a failure case.
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module binary
+    "\00asm\01\00\00\00\01\04\01\60\00\00\03\02\01\00\07\08"
+    "\01\04\74\65\73\74\00\00\0a\0d\01\0b\01\c0\b8\02\7f\20\b8\91"
+    "\02\1a\0b")
+  "local offset out of range")
+
+;; ---------------------------------------------------------------------------
+;; A result-typed `if` without an `else` used to be accepted when the then-arm
+;; ended unreachable. The false path is still reachable and produces no result,
+;; desynchronizing the validator's operand-stack model from the runtime stack
+;; pointer. Such a module must be rejected regardless of then-arm reachability.
+;; Function `f` of type () -> i32 whose body is
+;; `i32.const 0; if (result i32); unreachable; end`.
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module
+    (type $t0 (func (result i32)))
+    (func $f (export "f") (type $t0) (result i32)
+      (if $I0 (result i32)
+        (i32.const 0)
+        (then
+          (unreachable)))))
+  "result-typed if without else")
+
+;; ---------------------------------------------------------------------------
+;; An `else` opcode (0x05) with no enclosing `if` is invalid and must be
+;; rejected. wat cannot express a stray `else`, so the upstream suite never
+;; covers it; a differential-validation fuzzer (SpaceWasm vs wasmi) found that
+;; SpaceWasm used to accept this and mis-compile the `else` into a branch to the
+;; block end. Regression for that fix.
+;; type (id 1): [] -> []   func (id 3): type 0
+;; code (id 10): one body = `else end`  (0x05 0x0b)
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module binary "\00asm\01\00\00\00\01\04\01\60\00\00\03\02\01\00\0a\05\01\03\00\05\0b")
+  "else without matching if")
+
+;; ---------------------------------------------------------------------------
+;; A function whose worst-case call frame overflows the 16-bit
+;; `CallFrame::frame_length` field is rejected at validation time. The frame is
+;; `2 + local_size + stack_usage`; here `local_size` = 65535 words (one
+;; run-length local group of 65535 i32) and `stack_usage` = 0, so the frame is
+;; 65537 > 0xFFFF. 65535 is deliberately just under the per-function
+;; `TooManyLocals` bound (`local_size > 0xFFFF`), so this reaches the
+;; frame-length branch rather than the locals-count branch above it. wat cannot
+;; express a run-length local count, so this is only reachable via a binary
+;; module.
+;; type (id 1): [] -> []   func (id 3): type 0
+;; code (id 10): one body, 1 local group of 65535 (LEB \ff\ff\03) i32, `end`
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module binary "\00asm\01\00\00\00\01\04\01\60\00\00\03\02\01\00\0a\08\01\06\01\ff\ff\03\7f\0b")
+  "call frame too large")
+
+;; ---------------------------------------------------------------------------
+;; A vector count is bounded by the bytes remaining in its section before the
+;; decoder sizes an allocation for it. Left unchecked, a count of 0xFFFFFFFF
+;; drove a `Layout::array` panic on 32-bit targets (#158) or a multi-gigabyte
+;; allocation attempt on 64-bit hosts.
+;; type section (id 1): size=5, count=0xFFFFFFFF (LEB \ff\ff\ff\ff\0f), no entries
+;; ---------------------------------------------------------------------------
+(assert_invalid
+  (module binary "\00asm\01\00\00\00\01\05\ff\ff\ff\ff\0f")
+  "length out of bounds")

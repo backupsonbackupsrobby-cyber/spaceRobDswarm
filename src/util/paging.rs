@@ -1,9 +1,10 @@
-use crate::MemoryStatistics;
 use crate::alloc::{AllocError, Allocator};
 use core::alloc::Layout;
 use core::cell::UnsafeCell;
 
-// TODO(tumbar) Do we need to expose this or is it constant across all of SpaceWasm?
+/// Alignment requested when pulling a whole page from the backing allocator.
+/// 8 is usually the largest Rust will request (for the types we are using) so this
+/// default page alignment should incur minimal (probably none) initial padding.
 const ALIGNMENT: usize = 8;
 
 #[derive(Debug, Default, Clone)]
@@ -13,32 +14,14 @@ pub struct PageAllocatorStatistics {
     pub pages: u32,
 }
 
-impl From<PageAllocatorStatistics> for MemoryStatistics {
-    fn from(stats: PageAllocatorStatistics) -> MemoryStatistics {
-        MemoryStatistics {
-            total_bytes: stats.total_bytes as i32,
-            pad_bytes: stats.pad_bytes as i32,
-        }
-    }
+/// A bump allocator over up to `MAX_PAGES` pages taken from `A`. A page is
+/// freed once every allocation in it is.
+pub struct PageAllocator<A: Allocator, const MAX_PAGES: usize> {
+    inner: UnsafeCell<PageAllocatorInner<A, MAX_PAGES>>,
 }
 
-/// A page is an allocator that utilizes a large contiguous blocks of memory
-/// to perform smaller allocations. It is strictly increasing in it's offset for
-/// simplicity. This means a bounded number of allocations should occur since it does
-/// no garbage collection within the page. If all allocations within a single page are
-/// freed it will also free the page.
-///
-/// Page allocators wrap another allocator who is responsible for actually allocating
-/// each page. The page allocator will only call to this allocator once it can no longer
-/// fit the next allocation in any of it's currently allocated pages.
-///
-/// This allocator supports a static number of pages and therefore can run out of memory
-pub struct PageAllocator<'a, const MAX_PAGES: usize> {
-    inner: UnsafeCell<PageAllocatorInner<'a, MAX_PAGES>>,
-}
-
-impl<'a, const MAX_PAGES: usize> PageAllocator<'a, MAX_PAGES> {
-    pub const fn new(alloc: &'a dyn Allocator, page_size: usize) -> Self {
+impl<A: Allocator, const MAX_PAGES: usize> PageAllocator<A, MAX_PAGES> {
+    pub const fn new(alloc: A, page_size: usize) -> Self {
         Self {
             inner: UnsafeCell::new(PageAllocatorInner::new(alloc, page_size)),
         }
@@ -60,25 +43,32 @@ impl<'a, const MAX_PAGES: usize> PageAllocator<'a, MAX_PAGES> {
 
         stats
     }
+
+    pub fn with_inner<R>(&self, f: impl FnOnce(&mut A) -> R) -> R {
+        let r: &mut PageAllocatorInner<A, MAX_PAGES> = unsafe { &mut *self.inner.get() };
+        f(&mut r.page_allocator)
+    }
 }
 
-struct PageAllocatorInner<'a, const MAX_PAGES: usize> {
-    page_allocator: &'a dyn Allocator,
+struct PageAllocatorInner<A: Allocator, const MAX_PAGES: usize> {
+    page_allocator: A,
     page_size: usize,
     pages: [Option<Page>; MAX_PAGES],
+    poisoned: bool,
 }
 
-impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
-    const fn new(alloc: &'a dyn Allocator, page_size: usize) -> PageAllocatorInner<'a, MAX_PAGES> {
+impl<A: Allocator, const MAX_PAGES: usize> PageAllocatorInner<A, MAX_PAGES> {
+    const fn new(alloc: A, page_size: usize) -> PageAllocatorInner<A, MAX_PAGES> {
         PageAllocatorInner {
             page_allocator: alloc,
             page_size,
             pages: [const { None }; MAX_PAGES],
+            poisoned: false,
         }
     }
 }
 
-unsafe impl<'a, const MAX_PAGES: usize> Allocator for PageAllocator<'a, MAX_PAGES> {
+unsafe impl<A: Allocator, const MAX_PAGES: usize> Allocator for PageAllocator<A, MAX_PAGES> {
     unsafe fn alloc(&self, layout: Layout) -> Result<*mut u8, AllocError> {
         unsafe { (&mut *self.inner.get()).alloc(layout) }
     }
@@ -86,16 +76,21 @@ unsafe impl<'a, const MAX_PAGES: usize> Allocator for PageAllocator<'a, MAX_PAGE
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         unsafe { (&mut *self.inner.get()).dealloc(ptr, layout) }
     }
-
-    fn memory_statistics(&self) -> MemoryStatistics {
-        self.stats().into()
-    }
 }
 
-impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
+// `alloc` and `dealloc` are kept out of line: every drop of a `Vec`/`Box`
+// reaches them through `__spacewasm_dealloc`, and inlining them at each of
+// those sites costs several KB of code on embedded targets.
+impl<A: Allocator, const MAX_PAGES: usize> PageAllocatorInner<A, MAX_PAGES> {
+    #[inline(never)]
     unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocError> {
         if layout.size() == 0 {
             return Err(AllocError::AllocationFailed);
+        }
+
+        // All allocations fail if the heap is poisoned
+        if self.poisoned {
+            return Err(AllocError::HeapPoisoned);
         }
 
         // Go through each page one-by-one and try to allocate
@@ -103,7 +98,6 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
         for bucket in self.pages.iter_mut() {
             match bucket {
                 Some(page) => {
-                    // Attempt to allocate to this page
                     match page.alloc(layout) {
                         None => {
                             // Allocation failed, fallthrough to the next page
@@ -116,7 +110,8 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
                 None => {
                     // We have reached an empty page
                     // Allocate the page and place the allocation here
-                    let page_layout = Layout::from_size_align(self.page_size, ALIGNMENT).unwrap();
+                    let page_layout = Layout::from_size_align(self.page_size, ALIGNMENT)
+                        .map_err(|_| AllocError::PageTooSmall)?;
                     let addr = unsafe { self.page_allocator.alloc(page_layout)? };
 
                     // Attempt to allocate this memory into the page
@@ -124,8 +119,8 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
                     let ptr = match page.alloc(layout) {
                         None => {
                             // Allocation failed on a new page
-                            // Drop the page and error
-                            // FIXME(tumbar) This means that the page size is too small! What do we do?
+                            // All pages are the same size so this will never work.
+                            // Drop the page and error.
                             unsafe { self.page_allocator.dealloc(addr, page_layout) }
                             return Err(AllocError::PageTooSmall);
                         }
@@ -143,6 +138,7 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
         Err(AllocError::OutOfMemory)
     }
 
+    #[inline(never)]
     unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
         for bucket in self.pages.iter_mut() {
             if let Some(page) = bucket {
@@ -152,15 +148,25 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
                         // Fallthrough to the next page
                     }
                     Some(drop_page) => {
+                        // deallocation poisons the heap
+                        self.poisoned = true;
+
                         if drop_page {
                             unsafe {
+                                // SAFETY: the page layout was validated when
+                                // this page was allocated.
                                 self.page_allocator.dealloc(
                                     page.ptr,
-                                    Layout::from_size_align(self.page_size, ALIGNMENT).unwrap(),
+                                    Layout::from_size_align_unchecked(self.page_size, ALIGNMENT),
                                 );
                             }
 
                             bucket.take();
+                        }
+
+                        // Clear poison flag once the heap is empty
+                        if self.pages.iter().all(Option::is_none) {
+                            self.poisoned = false;
                         }
 
                         return;
@@ -168,10 +174,18 @@ impl<'a, const MAX_PAGES: usize> PageAllocatorInner<'a, MAX_PAGES> {
                 }
             }
         }
+
+        // This pointer is not owned by us!
+        // Potentially a double free or invalid pointer
+        debug_assert!(
+            false,
+            "PageAllocator::dealloc called with a pointer not owned by any live page \
+             (foreign pointer or double free)"
+        );
     }
 }
 
-impl<'a, const MAX_PAGES: usize> Drop for PageAllocatorInner<'a, MAX_PAGES> {
+impl<A: Allocator, const MAX_PAGES: usize> Drop for PageAllocatorInner<A, MAX_PAGES> {
     fn drop(&mut self) {
         // Deallocate pages in reverse order to satisfy LIFO allocators like StackAllocator
         for bucket in self.pages.iter_mut().rev() {
@@ -179,9 +193,11 @@ impl<'a, const MAX_PAGES: usize> Drop for PageAllocatorInner<'a, MAX_PAGES> {
                 None => {}
                 Some(page) => {
                     unsafe {
+                        // SAFETY: the page layout was validated when this
+                        // page was allocated.
                         self.page_allocator.dealloc(
                             page.ptr,
-                            Layout::from_size_align(self.page_size, ALIGNMENT).unwrap(),
+                            Layout::from_size_align_unchecked(self.page_size, ALIGNMENT),
                         );
                     }
 
@@ -192,21 +208,13 @@ impl<'a, const MAX_PAGES: usize> Drop for PageAllocatorInner<'a, MAX_PAGES> {
     }
 }
 
-#[derive(Clone)]
-struct AllocCache {
-    restore_ptr: usize,
-    alloc_ptr: usize,
-}
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 struct Page {
     ptr: *mut u8,
     size: usize,
     allocated: usize,
     n_allocations: usize,
     wasted: usize,
-    has_deallocated: bool,
-    cache: Option<AllocCache>,
 }
 
 impl Page {
@@ -217,8 +225,6 @@ impl Page {
             allocated: 0,
             n_allocations: 0,
             wasted: 0,
-            has_deallocated: false,
-            cache: None,
         }
     }
 
@@ -236,17 +242,11 @@ impl Page {
         // Make sure out buffer can fit in here
         let final_offset = (aligned_start - self.ptr as usize) + layout.size();
         if final_offset <= self.size {
-            assert!(!self.has_deallocated);
-            self.cache = Some(AllocCache {
-                restore_ptr: start_address,
-                alloc_ptr: aligned_start,
-            });
-
             self.wasted += alignment_offset;
             self.allocated = final_offset;
             self.n_allocations += 1;
 
-            Some(aligned_start as *mut u8)
+            Some(self.ptr.with_addr(aligned_start))
         } else {
             None
         }
@@ -261,19 +261,7 @@ impl Page {
             // This is our pointer, 'free' it
             assert!(self.n_allocations > 0);
 
-            // Check is we can deallocate this pointer without marking this page with a dealloc flag
-            if let Some(cache) = self.cache.take()
-                && cache.alloc_ptr == dealloc_ptr
-            {
-                self.n_allocations -= 1;
-                self.allocated = cache.restore_ptr - page_ptr;
-                self.wasted -= dealloc_ptr - cache.restore_ptr;
-                return Some(self.n_allocations == 0);
-            };
-
-            // FIXME(tumbar) We may want to track used regions of the pages
             self.n_allocations -= 1;
-            self.has_deallocated = true;
             Some(self.n_allocations == 0)
         } else {
             None
@@ -290,8 +278,7 @@ mod tests {
 
     #[test]
     fn test_page_allocator_basic() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<4>::new(&stack_alloc, 512);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 512);
 
         unsafe {
             let layout = Layout::from_size_align(64, 8).unwrap();
@@ -305,8 +292,7 @@ mod tests {
 
     #[test]
     fn test_page_allocator_stats() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<4>::new(&stack_alloc, 512);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 512);
 
         unsafe {
             let layout = Layout::from_size_align(64, 8).unwrap();
@@ -320,8 +306,7 @@ mod tests {
 
     #[test]
     fn test_page_allocator_multiple_pages() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<4>::new(&stack_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 128);
 
         unsafe {
             let layout = Layout::from_size_align(100, 8).unwrap();
@@ -335,8 +320,7 @@ mod tests {
 
     #[test]
     fn test_page_allocator_out_of_pages() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<2>::new(&stack_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 2>::new(RustSystemAllocator, 128);
 
         unsafe {
             let layout = Layout::from_size_align(100, 8).unwrap();
@@ -349,8 +333,7 @@ mod tests {
 
     #[test]
     fn test_full_reclaim_after_non_lifo_frees() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<4>::new(&stack_alloc, 512);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 512);
 
         unsafe {
             let layout = Layout::from_size_align(64, 8).unwrap();
@@ -374,9 +357,83 @@ mod tests {
     }
 
     #[test]
+    fn test_partial_deallocation_keeps_page_until_last_free() {
+        // A 128-byte page holds exactly two 64-byte allocations, so this
+        // exercises partial deallocation of a page across a multi-page live
+        // set: freeing one allocation from a page while its sibling is still
+        // live (`Page::dealloc` returning `Some(false)`) must NOT reclaim the
+        // page, whereas freeing the last live allocation (`Some(true)`) must.
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 128);
+
+        unsafe {
+            let layout = Layout::from_size_align(64, 8).unwrap();
+
+            let a = page_alloc.alloc(layout).unwrap(); // page 0, slot 0
+            let b = page_alloc.alloc(layout).unwrap(); // page 0, slot 1 (page 0 full)
+            let c = page_alloc.alloc(layout).unwrap(); // page 1, slot 0
+
+            assert_eq!(page_alloc.stats().pages, 2, "two pages must be live");
+
+            // Partial free: releasing one of page 0's two allocations must not
+            // reclaim the page while its sibling remains live.
+            page_alloc.dealloc(b, layout);
+            assert_eq!(
+                page_alloc.stats().pages,
+                2,
+                "page 0 must stay live while one of its allocations remains"
+            );
+
+            // Freeing the final live allocation in page 0 reclaims it.
+            page_alloc.dealloc(a, layout);
+            assert_eq!(
+                page_alloc.stats().pages,
+                1,
+                "page 0 must be reclaimed once all of its allocations are freed"
+            );
+
+            // Page 1 is still live via `c`; freeing it reclaims the last page.
+            page_alloc.dealloc(c, layout);
+            assert_eq!(
+                page_alloc.stats().pages,
+                0,
+                "all pages reclaimed after every allocation is freed"
+            );
+        }
+    }
+
+    #[test]
+    fn test_alloc_skips_page_when_teardown() {
+        let page_alloc = PageAllocator::<RustSystemAllocator, 2>::new(RustSystemAllocator, 128);
+
+        unsafe {
+            let layout = Layout::from_size_align(64, 8).unwrap();
+
+            let a = page_alloc.alloc(layout).unwrap();
+            let b = page_alloc.alloc(layout).unwrap();
+            let _c = page_alloc.alloc(layout).unwrap();
+            let _d = page_alloc.alloc(layout).unwrap();
+
+            // Fully dealloc page 0, page 1 still holds 2 live allocations
+            page_alloc.dealloc(a, layout);
+            page_alloc.dealloc(b, layout);
+            assert_eq!(
+                page_alloc.stats().pages,
+                1,
+                "page 0 must be reclaimed once both of its allocations are freed"
+            );
+
+            // No new allocation should succeed now
+            let result = page_alloc.alloc(layout);
+            assert!(
+                matches!(result, Err(AllocError::HeapPoisoned)),
+                "dealloc should poison the whole heap"
+            );
+        }
+    }
+
+    #[test]
     fn test_page_too_small() {
-        let stack_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<4>::new(&stack_alloc, 64);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 4>::new(RustSystemAllocator, 64);
 
         unsafe {
             let layout = Layout::from_size_align(100, 8).unwrap();
@@ -393,249 +450,206 @@ mod kani_proofs {
 
     use crate::test_support::RustSystemAllocator;
 
-    /// Verify Page::alloc pointer arithmetic safety and allocation correctness
+    /// Alloc never fails, overlaps an earlier allocation, or changes size
     #[kani::proof]
-    fn proof_page_allocation_safety() {
+    fn proof_page_alloc_step_invariant() {
         let backing_alloc = RustSystemAllocator;
 
-        // Allocate a page from backing allocator
-        let page_size = 256;
+        let page_size = 192;
         let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
         let page_ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+        let page_base = page_ptr as usize;
 
-        let mut page = Page::new(page_ptr, page_size);
+        let allocated: usize = kani::any();
+        let wasted: usize = kani::any();
+        let n_allocations: usize = kani::any();
+        kani::assume(allocated <= page_size);
+        kani::assume(wasted <= allocated);
+        kani::assume(n_allocations <= page_size);
 
-        // Test with symbolic size and alignment
+        let mut page = Page {
+            ptr: page_ptr,
+            size: page_size,
+            allocated,
+            wasted,
+            n_allocations,
+        };
+
         let size: usize = kani::any();
         kani::assume(size > 0 && size <= 64);
-
         let align: usize = kani::any();
-        kani::assume(align > 0 && align <= ALIGNMENT);
-        kani::assume(align.is_power_of_two());
-
+        kani::assume(align > 0 && align <= ALIGNMENT && align.is_power_of_two());
         let layout = Layout::from_size_align(size, align).unwrap();
 
-        let allocated_before = page.allocated;
-        let wasted_before = page.wasted;
+        let old_allocated = page.allocated;
+        let old_wasted = page.wasted;
+        let old_n_allocations = page.n_allocations;
 
         match page.alloc(layout) {
             Some(ptr) => {
-                let ptr_addr = ptr as usize;
-                let page_base = page_ptr as usize;
-
-                // Pointer must be aligned
-                assert_eq!(ptr_addr % align, 0, "Returned pointer must be aligned");
-
-                // Verify alignment padding is minimal
-                let start_before_align = page_base + allocated_before;
-                if start_before_align % align != 0 {
-                    let padding = page.wasted - wasted_before;
-                    assert!(padding < align, "Alignment padding must be < align");
-                    assert_eq!(
-                        (start_before_align + padding) % align,
-                        0,
-                        "Padding must result in aligned address"
-                    );
-                }
-
-                // Wasted bytes must increase monotonically
-                assert!(
-                    page.wasted >= wasted_before,
-                    "Wasted bytes must be monotonic"
-                );
-
-                // Pointer must be within page bounds
-                assert!(ptr_addr >= page_base, "Pointer must be >= page base");
-                assert!(
-                    ptr_addr < page_base + page_size,
-                    "Pointer must be within page"
-                );
-
-                // Allocated offset must be within bounds
                 assert!(
                     page.allocated <= page_size,
-                    "Allocated offset must not exceed page size"
-                );
-
-                // Allocated must increase monotonically
-                assert!(
-                    page.allocated >= allocated_before,
-                    "Allocated must increase"
-                );
-
-                // Allocation counter incremented
-                assert_eq!(page.n_allocations, 1, "Allocation counter must increment");
-
-                // Cache must be set
-                assert!(
-                    page.cache.is_some(),
-                    "Cache must be populated after allocation"
-                );
-
-                // No overflow in pointer arithmetic
-                let offset = ptr_addr - page_base;
-                assert!(
-                    offset.checked_add(size).is_some(),
-                    "Offset + size must not overflow"
+                    "allocated must never exceed page size"
                 );
                 assert!(
-                    offset + size <= page_size,
-                    "Allocation must fit within page"
+                    page.wasted <= page.allocated,
+                    "wasted must never exceed allocated"
+                );
+                assert!(
+                    page.allocated >= old_allocated,
+                    "allocated must never shrink (rule 3)"
+                );
+                assert!(
+                    page.wasted >= old_wasted,
+                    "wasted must advance monotonically"
+                );
+                assert_eq!(
+                    page.n_allocations,
+                    old_n_allocations + 1,
+                    "n_allocations must increase by exactly one on success"
                 );
 
-                // Second allocation must not overlap
-                let layout2 = Layout::from_size_align(16, 8).unwrap();
-                if let Some(ptr2) = page.alloc(layout2) {
-                    let ptr2_addr = ptr2 as usize;
-                    let offset2 = ptr2_addr - page_base;
-
-                    // Second allocation must start after first ends
-                    assert!(offset2 >= offset + size, "Allocations must not overlap");
-                    assert_eq!(
-                        page.n_allocations, 2,
-                        "Counter must be 2 after second alloc"
-                    );
-                }
+                let ptr_addr = ptr as usize;
+                assert_eq!(ptr_addr % align, 0, "returned pointer must be aligned");
+                assert!(
+                    ptr_addr >= page_base + old_allocated,
+                    "allocation must start at or past the old page pointer"
+                );
+                assert!(
+                    ptr_addr + size <= page_base + page_size,
+                    "allocation must fit entirely inside the page"
+                );
             }
             None => {
-                // Allocation failed - page too full
-                // This is acceptable
+                assert_eq!(
+                    page.allocated, old_allocated,
+                    "a failed allocation must not advance allocated (rule 5)"
+                );
+                assert_eq!(
+                    page.wasted, old_wasted,
+                    "a failed allocation must not commit alignment padding"
+                );
+                assert_eq!(
+                    page.n_allocations, old_n_allocations,
+                    "a failed allocation must not change the allocation counter"
+                );
             }
         }
 
-        // Cleanup
+        assert_eq!(page.size, page_size, "size must never change (rule 1)");
+
         core::mem::forget(page);
         unsafe { backing_alloc.dealloc(page_ptr, page_layout) };
     }
 
-    /// Verify Page::dealloc correctness and cache mechanism
+    /// Dealloc decrements `n_allocations` by one and never moves `allocated`
     #[kani::proof]
-    fn proof_page_deallocation_safety() {
+    fn proof_page_dealloc_in_range_step_invariant() {
         let backing_alloc = RustSystemAllocator;
 
-        let page_size = 256;
+        let page_size = 192;
         let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
         let page_ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
-
-        let mut page = Page::new(page_ptr, page_size);
         let page_base = page_ptr as usize;
 
-        // Make two allocations
-        let layout1 = Layout::from_size_align(32, 8).unwrap();
-        let layout2 = Layout::from_size_align(16, 8).unwrap();
+        let allocated: usize = kani::any();
+        let wasted: usize = kani::any();
+        let n_allocations: usize = kani::any();
+        kani::assume(allocated <= page_size);
+        kani::assume(wasted <= allocated);
+        kani::assume(n_allocations >= 1 && n_allocations <= page_size);
 
-        let ptr1 = page.alloc(layout1).unwrap();
-        let allocated_after_first = page.allocated;
-        let wasted_after_first = page.wasted;
+        let mut page = Page {
+            ptr: page_ptr,
+            size: page_size,
+            allocated,
+            wasted,
+            n_allocations,
+        };
 
-        let ptr2 = page.alloc(layout2).unwrap();
-        let _allocated_after_second = page.allocated;
-        let _wasted_after_second = page.wasted;
+        let dealloc_offset: usize = kani::any();
+        kani::assume(dealloc_offset < page_size);
+        let dealloc_ptr = (page_base + dealloc_offset) as *mut u8;
+        let layout = Layout::from_size_align(1, 1).unwrap();
 
-        assert_eq!(page.n_allocations, 2, "Should have 2 allocations");
+        let old_n_allocations = page.n_allocations;
+        let old_allocated = page.allocated;
+        let old_wasted = page.wasted;
 
-        // Test LIFO deallocation (cache hit)
-        let should_drop = page.dealloc(ptr2, layout2);
+        let result = page.dealloc(dealloc_ptr, layout);
 
         assert_eq!(
-            should_drop,
-            Some(false),
-            "Page should not be dropped with remaining allocations"
-        );
-        assert_eq!(page.n_allocations, 1, "Counter must decrement");
-
-        // Cache hit must restore allocated to exact previous value
-        assert_eq!(
-            page.allocated, allocated_after_first,
-            "Cache hit must restore allocated to exact previous value"
-        );
-
-        // Cache hit must restore wasted bytes (subtracts alignment padding)
-        assert_eq!(
-            page.wasted, wasted_after_first,
-            "Cache hit must restore wasted bytes"
-        );
-
-        assert!(
-            !page.has_deallocated,
-            "Cache hit should not set has_deallocated flag"
-        );
-
-        // Test pointer ownership check - pointer outside page range
-        let outside_ptr = (page_base - 16) as *mut u8;
-        let result = page.dealloc(outside_ptr, layout1);
-        assert_eq!(
-            result, None,
-            "Dealloc of pointer outside page must return None"
+            result,
+            Some(old_n_allocations == 1),
+            "dealloc must return (Some(true)) iff this was the page's last live allocation"
         );
         assert_eq!(
-            page.n_allocations, 1,
-            "Counter must not change for outside pointer"
+            page.n_allocations,
+            old_n_allocations - 1,
+            "n_allocations must decrease by exactly one"
         );
-
-        // Test non-LIFO deallocation (cache miss)
-        let ptr3 = page.alloc(Layout::from_size_align(8, 8).unwrap()).unwrap();
-        assert_eq!(page.n_allocations, 2, "Should have 2 allocations again");
-
-        // Deallocate ptr1 (not the last allocation, so cache miss)
-        let should_drop2 = page.dealloc(ptr1, layout1);
-        assert_eq!(should_drop2, Some(false), "Page should not be dropped");
-        assert_eq!(page.n_allocations, 1, "Counter must decrement");
-        assert!(
-            page.has_deallocated,
-            "Cache miss should set has_deallocated flag"
-        );
-
-        // Final deallocation should return true (drop page)
-        let should_drop3 = page.dealloc(ptr3, Layout::from_size_align(8, 8).unwrap());
         assert_eq!(
-            should_drop3,
-            Some(true),
-            "Page should be dropped when n_allocations reaches 0"
+            page.allocated, old_allocated,
+            "dealloc must not move allocated"
         );
-        assert_eq!(page.n_allocations, 0, "Counter must be 0");
+        assert_eq!(page.wasted, old_wasted, "dealloc must not change wasted");
 
-        // Cleanup
         core::mem::forget(page);
         unsafe { backing_alloc.dealloc(page_ptr, page_layout) };
     }
 
-    /// Makes sure that padding is computed correctly
+    /// Dealloc-ing an out-of-range pointer will fail correctly
     #[kani::proof]
-    fn proof_page_alignment_padding() {
+    fn proof_page_dealloc_out_of_range_is_noop() {
         let backing_alloc = RustSystemAllocator;
 
-        let page_size = 128;
+        let page_size = 192;
         let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
         let page_ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+        let page_base = page_ptr as usize;
 
-        let mut page = Page::new(page_ptr, page_size);
+        let allocated: usize = kani::any();
+        let wasted: usize = kani::any();
+        let n_allocations: usize = kani::any();
+        kani::assume(allocated <= page_size);
+        kani::assume(wasted <= allocated);
+        kani::assume(n_allocations <= page_size);
 
-        // Leave `allocated` at an offset that is not a multiple of 8, so the
-        // next allocation attempt needs alignment padding
-        let layout1 = Layout::from_size_align(10, 8).unwrap();
-        page.alloc(layout1).expect("first allocation must fit");
-        assert_eq!(page.allocated, 10);
-        assert_eq!(page.wasted, 0);
+        let mut page = Page {
+            ptr: page_ptr,
+            size: page_size,
+            allocated,
+            wasted,
+            n_allocations,
+        };
 
-        // Needs 6 bytes of padding, but 16 + 115 = 131 > 128, so this allocation must fail
-        let layout2 = Layout::from_size_align(115, 8).unwrap();
-        let wasted_before = page.wasted;
-        let allocated_before = page.allocated;
+        // A pointer strictly past the end of the page's byte range.
+        let past_end_offset: usize = kani::any();
+        kani::assume(past_end_offset < 1024);
+        let dealloc_ptr = (page_base + page_size + past_end_offset) as *mut u8;
+        let layout = Layout::from_size_align(1, 1).unwrap();
 
-        let result = page.alloc(layout2);
+        let old_page = page.clone();
 
-        assert!(result.is_none(), "allocation must fail: it does not fit");
+        let result = page.dealloc(dealloc_ptr, layout);
+
         assert_eq!(
-            page.wasted, wasted_before,
-            "a failed allocation must not commit alignment padding to `wasted`"
+            result, None,
+            "a pointer outside the page's range must be rejected"
         );
         assert_eq!(
-            page.allocated, allocated_before,
-            "a failed allocation must not advance `allocated`"
+            page.allocated, old_page.allocated,
+            "a rejected dealloc must not change allocated"
+        );
+        assert_eq!(
+            page.wasted, old_page.wasted,
+            "a rejected dealloc must not change wasted"
+        );
+        assert_eq!(
+            page.n_allocations, old_page.n_allocations,
+            "a rejected dealloc must not change n_allocations"
         );
 
-        // Cleanup
         core::mem::forget(page);
         unsafe { backing_alloc.dealloc(page_ptr, page_layout) };
     }
@@ -643,8 +657,7 @@ mod kani_proofs {
     /// Test zero-size allocation must fail
     #[kani::proof]
     fn proof_zero_size_alloc_fails() {
-        let backing_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<3>::new(&backing_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 3>::new(RustSystemAllocator, 128);
 
         let zero_layout = Layout::from_size_align(0, 1).unwrap();
         let result_zero = unsafe { page_alloc.alloc(zero_layout) };
@@ -654,8 +667,7 @@ mod kani_proofs {
     /// Test allocation too large for page size must fail
     #[kani::proof]
     fn proof_large_page_alloc_fails() {
-        let backing_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<3>::new(&backing_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 3>::new(RustSystemAllocator, 128);
 
         let huge_layout = Layout::from_size_align(200, 8).unwrap();
         let result_huge = unsafe { page_alloc.alloc(huge_layout) };
@@ -665,12 +677,10 @@ mod kani_proofs {
         );
     }
 
-    /// Verify that page allocations within bounds work correctly, but page allocs
-    /// that exceed total page capacity will fail
+    /// Page allocations must be less than total capacity
     #[kani::proof]
     fn proof_page_overalloc_failure() {
-        let backing_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<3>::new(&backing_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 3>::new(RustSystemAllocator, 128);
         let layout = Layout::from_size_align(128, 8).unwrap();
 
         let ptr1 = unsafe { page_alloc.alloc(layout) }.expect("page 0 must fit");
@@ -712,12 +722,10 @@ mod kani_proofs {
         }
     }
 
-    /// Verify that an allocation reuses an existing page with room instead
-    /// of creating a new one
+    /// Allocation reuses an existing page with space instead of creating a new one
     #[kani::proof]
     fn proof_page_alloc_reuses_existing_page() {
-        let backing_alloc = RustSystemAllocator;
-        let page_alloc = PageAllocator::<3>::new(&backing_alloc, 128);
+        let page_alloc = PageAllocator::<RustSystemAllocator, 3>::new(RustSystemAllocator, 128);
         let layout = Layout::from_size_align(64, 8).unwrap();
 
         let ptr1 = unsafe { page_alloc.alloc(layout) }.expect("page 0 must fit");
@@ -747,19 +755,391 @@ mod kani_proofs {
         }
     }
 
+    /// Alloc creates or reuses page correctly or throws error
+    #[kani::proof]
+    #[kani::unwind(3)]
+    fn proof_page_allocator_alloc_step_invariant() {
+        const MAX_PAGES: usize = 2;
+        let backing_alloc = RustSystemAllocator;
+        let page_size: usize = 128;
+        let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
+
+        let make_page = |is_some: bool| -> Option<Page> {
+            if !is_some {
+                return None;
+            }
+            let ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+            let allocated: usize = kani::any();
+            let wasted: usize = kani::any();
+            let n_allocations: usize = kani::any();
+            kani::assume(allocated <= page_size);
+            kani::assume(wasted <= allocated);
+            kani::assume(n_allocations >= 1 && n_allocations <= page_size);
+            Some(Page {
+                ptr,
+                size: page_size,
+                allocated,
+                wasted,
+                n_allocations,
+            })
+        };
+
+        let is_some_0: bool = kani::any();
+        let is_some_1: bool = kani::any();
+        let page0 = make_page(is_some_0);
+        let page1 = make_page(is_some_1);
+        let old_page0 = page0.clone();
+        let old_page1 = page1.clone();
+
+        let poisoned: bool = kani::any();
+
+        let mut inner = PageAllocatorInner::<RustSystemAllocator, MAX_PAGES> {
+            page_allocator: backing_alloc,
+            page_size,
+            pages: [page0, page1],
+            poisoned,
+        };
+
+        let old_total = backing_alloc.total_allocated();
+
+        let size: usize = kani::any();
+        kani::assume(size > 0 && size <= 32);
+        let align: usize = kani::any();
+        kani::assume(align > 0 && align <= ALIGNMENT && align.is_power_of_two());
+        let layout = Layout::from_size_align(size, align).unwrap();
+
+        let result = unsafe { inner.alloc(layout) };
+
+        assert_eq!(
+            inner.poisoned, poisoned,
+            "alloc must never change the poison flag"
+        );
+
+        let new_total = backing_alloc.total_allocated();
+        let slot0_changed = old_page0 != inner.pages[0];
+        let slot1_changed = old_page1 != inner.pages[1];
+
+        if poisoned {
+            assert!(
+                matches!(result, Err(AllocError::HeapPoisoned)),
+                "a poisoned heap cannot accept a new allocation"
+            );
+            assert!(!slot0_changed && !slot1_changed, "pages must be untouched");
+            assert_eq!(new_total, old_total, "no backing memory allocated");
+            return;
+        }
+
+        match result {
+            Ok(ptr) => {
+                let ptr_addr = ptr as usize;
+                assert!(
+                    slot0_changed ^ slot1_changed,
+                    "a successful allocation must touch exactly one page"
+                );
+
+                let (touched_new, touched_old) = if slot0_changed {
+                    (inner.pages[0].as_ref(), old_page0.as_ref())
+                } else {
+                    (inner.pages[1].as_ref(), old_page1.as_ref())
+                };
+                let touched_new =
+                    touched_new.expect("the touched slot must be occupied after success");
+                let touched_base = touched_new.ptr as usize;
+
+                assert_eq!(ptr_addr % align, 0, "returned pointer must be aligned");
+                assert!(
+                    ptr_addr >= touched_base && ptr_addr + size <= touched_base + page_size,
+                    "allocation must fit entirely inside the page it was carved from"
+                );
+
+                match touched_old {
+                    Some(old) => {
+                        assert_eq!(
+                            touched_new.ptr, old.ptr,
+                            "reusing a page must not change its address"
+                        );
+                        assert_eq!(
+                            new_total, old_total,
+                            "reusing an existing page's capacity must not allocate a new page"
+                        );
+                        assert!(
+                            ptr_addr >= touched_base + old.allocated,
+                            "must respect the touched page's own bump pointer"
+                        );
+                        assert_eq!(
+                            touched_new.n_allocations,
+                            old.n_allocations + 1,
+                            "n_allocations must increase by exactly one"
+                        );
+                    }
+                    None => {
+                        assert_eq!(
+                            new_total,
+                            old_total + page_size as isize,
+                            "filling an empty slot must allocate exactly page_size fresh bytes"
+                        );
+                        assert_eq!(
+                            touched_new.n_allocations, 1,
+                            "a freshly created page's first allocation"
+                        );
+                        assert!(
+                            touched_new.allocated >= size,
+                            "the fresh page must record the new allocation's bytes"
+                        );
+                    }
+                }
+
+                if slot0_changed {
+                    assert_eq!(
+                        old_page1, inner.pages[1],
+                        "the untouched page must be unchanged"
+                    );
+                } else {
+                    assert_eq!(
+                        old_page0, inner.pages[0],
+                        "the untouched page must be unchanged"
+                    );
+                }
+            }
+            Err(AllocError::OutOfMemory) => {
+                assert!(
+                    !slot0_changed && !slot1_changed,
+                    "OutOfMemory must leave every page untouched"
+                );
+                assert_eq!(
+                    new_total, old_total,
+                    "OutOfMemory must not allocate backing memory"
+                );
+                assert!(
+                    old_page0.is_some() && old_page1.is_some(),
+                    "OutOfMemory requires every slot to already be occupied"
+                );
+            }
+            Err(other) => {
+                panic!(
+                    "unexpected allocation error under these bounds: {:?}",
+                    other
+                );
+            }
+        }
+    }
+
+    /// dealloc only removes the correct page.
+    #[kani::proof]
+    #[kani::unwind(3)]
+    fn proof_page_allocator_dealloc_step_invariant() {
+        const MAX_PAGES: usize = 2;
+        let backing_alloc = RustSystemAllocator;
+        let page_size: usize = 128;
+        let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
+
+        let make_page = || -> Page {
+            let ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+            let allocated: usize = kani::any();
+            let wasted: usize = kani::any();
+            let n_allocations: usize = kani::any();
+            kani::assume(allocated <= page_size);
+            kani::assume(wasted <= allocated);
+            kani::assume(n_allocations >= 1 && n_allocations <= page_size);
+            Page {
+                ptr,
+                size: page_size,
+                allocated,
+                wasted,
+                n_allocations,
+            }
+        };
+
+        let old_page0 = make_page();
+        let old_page1 = make_page();
+
+        let poisoned: bool = kani::any();
+
+        let mut inner = PageAllocatorInner::<RustSystemAllocator, MAX_PAGES> {
+            page_allocator: backing_alloc,
+            page_size,
+            pages: [Some(old_page0.clone()), Some(old_page1.clone())],
+            poisoned,
+        };
+
+        let old_total = backing_alloc.total_allocated();
+
+        // Target exactly one of the two resident pages, at an arbitrary in-range offset.
+        let target_page1: bool = kani::any();
+        let target_old = if target_page1 { &old_page1 } else { &old_page0 };
+        let offset: usize = kani::any();
+        kani::assume(offset < page_size);
+        let dealloc_ptr = (target_old.ptr as usize + offset) as *mut u8;
+        let layout = Layout::from_size_align(1, 1).unwrap();
+
+        unsafe { inner.dealloc(dealloc_ptr, layout) };
+
+        let new_total = backing_alloc.total_allocated();
+
+        let (touched_new, untouched_new, untouched_old) = if target_page1 {
+            (&inner.pages[1], &inner.pages[0], &old_page0)
+        } else {
+            (&inner.pages[0], &inner.pages[1], &old_page1)
+        };
+
+        assert_eq!(
+            Some(untouched_old.clone()),
+            *untouched_new,
+            "the untargeted page must be completely unchanged"
+        );
+
+        if target_old.n_allocations == 1 {
+            assert!(
+                touched_new.is_none(),
+                "a page's last live allocation being freed must reclaim it"
+            );
+            assert_eq!(
+                new_total,
+                old_total - page_size as isize,
+                "reclaiming a page must free exactly page_size bytes"
+            );
+        } else {
+            let touched = touched_new
+                .as_ref()
+                .expect("a page with remaining live allocations must not be reclaimed");
+            assert_eq!(
+                touched.n_allocations,
+                target_old.n_allocations - 1,
+                "n_allocations must decrease by exactly one"
+            );
+            assert_eq!(touched.ptr, target_old.ptr, "address must be unchanged");
+            assert_eq!(
+                touched.allocated, target_old.allocated,
+                "dealloc must not move the bump pointer"
+            );
+            assert_eq!(
+                new_total, old_total,
+                "freeing a non-final allocation must not touch the backing allocator"
+            );
+        }
+
+        let heap_all_empty = inner.pages.iter().all(Option::is_none);
+
+        let next_size: usize = kani::any();
+        kani::assume(next_size > 0 && next_size <= 32);
+        let next_align: usize = kani::any();
+        kani::assume(next_align > 0 && next_align <= ALIGNMENT && next_align.is_power_of_two());
+        let next_layout = Layout::from_size_align(next_size, next_align).unwrap();
+
+        let next_result = unsafe { inner.alloc(next_layout) };
+
+        assert!(
+            heap_all_empty || matches!(next_result, Err(AllocError::HeapPoisoned)),
+            "every future allocation after a dealloc must fail until the whole heap has been freed"
+        );
+    }
+
+    /// Deallocing a pointer that doesn't match a page should panic
+    #[kani::proof]
+    #[kani::should_panic]
+    fn proof_page_allocator_dealloc_foreign_pointer_aborts() {
+        const MAX_PAGES: usize = 2;
+        let backing_alloc = RustSystemAllocator;
+        let page_size: usize = 128;
+        let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
+
+        let ptr0 = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+        let ptr1 = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+        let page0_base = ptr0 as usize;
+        let page1_base = ptr1 as usize;
+
+        let poisoned: bool = kani::any();
+
+        let mut inner = PageAllocatorInner::<RustSystemAllocator, MAX_PAGES> {
+            page_allocator: backing_alloc,
+            page_size,
+            pages: [
+                Some(Page::new(ptr0, page_size)),
+                Some(Page::new(ptr1, page_size)),
+            ],
+            poisoned,
+        };
+
+        let past_end_offset: usize = kani::any();
+        kani::assume(past_end_offset < 1024);
+        let foreign_addr = page0_base + page_size + past_end_offset;
+        kani::assume(foreign_addr < page1_base || foreign_addr >= page1_base + page_size);
+        let foreign_ptr = foreign_addr as *mut u8;
+        let layout = Layout::from_size_align(1, 1).unwrap();
+
+        unsafe { inner.dealloc(foreign_ptr, layout) };
+    }
+
+    /// Poison is set after dealloc iff at least one page is still resident
+    #[kani::proof]
+    #[kani::unwind(4)]
+    fn proof_poison_clears_when_heap_empties() {
+        const MAX_PAGES: usize = 3;
+        let backing_alloc = RustSystemAllocator;
+        let page_size: usize = 128;
+        let page_layout = Layout::from_size_align(page_size, ALIGNMENT).unwrap();
+
+        let make_page = |is_some: bool| -> Option<Page> {
+            if !is_some {
+                return None;
+            }
+            let ptr = unsafe { backing_alloc.alloc(page_layout).unwrap() };
+            let allocated: usize = kani::any();
+            let wasted: usize = kani::any();
+            let n_allocations: usize = kani::any();
+            kani::assume(allocated <= page_size);
+            kani::assume(wasted <= allocated);
+            kani::assume(n_allocations >= 1 && n_allocations <= page_size);
+            Some(Page {
+                ptr,
+                size: page_size,
+                allocated,
+                wasted,
+                n_allocations,
+            })
+        };
+
+        let target: usize = kani::any();
+        kani::assume(target < MAX_PAGES);
+
+        let page0 = make_page(target == 0 || kani::any());
+        let page1 = make_page(target == 1 || kani::any());
+        let page2 = make_page(target == 2 || kani::any());
+
+        let poisoned: bool = kani::any();
+
+        let mut inner = PageAllocatorInner::<RustSystemAllocator, MAX_PAGES> {
+            page_allocator: backing_alloc,
+            page_size,
+            pages: [page0, page1, page2],
+            poisoned,
+        };
+
+        let target_ptr = inner.pages[target].as_ref().unwrap().ptr;
+        let offset: usize = kani::any();
+        kani::assume(offset < page_size);
+        let dealloc_ptr = (target_ptr as usize + offset) as *mut u8;
+        let layout = Layout::from_size_align(1, 1).unwrap();
+
+        unsafe { inner.dealloc(dealloc_ptr, layout) };
+
+        let all_empty = inner.pages.iter().all(Option::is_none);
+
+        assert_eq!(
+            inner.poisoned, !all_empty,
+            "poison is set iff a page is still resident"
+        );
+    }
+
     /// Verify Drop frees all pages in correct order
     #[kani::proof]
     fn proof_drop_safety() {
         let backing_alloc = RustSystemAllocator;
 
-        let initial_stats = backing_alloc.memory_statistics();
-        assert_eq!(
-            initial_stats.total_bytes, 0,
-            "Backing allocator must start empty"
-        );
+        let initial_bytes = backing_alloc.total_allocated();
 
         {
-            let page_alloc = PageAllocator::<3>::new(&backing_alloc, 128);
+            let page_alloc = PageAllocator::<&RustSystemAllocator, 3>::new(&backing_alloc, 128);
 
             // Each allocation is 100 bytes, forcing new page creation
             // (100 bytes won't fit after first allocation in 128-byte page)
@@ -774,8 +1154,10 @@ mod kani_proofs {
             assert_eq!(stats.pages, 3, "Must have exactly 3 pages allocated");
 
             // Memory should be allocated
-            let mid_stats = backing_alloc.memory_statistics();
-            assert!(mid_stats.total_bytes > 0, "Memory must be allocated");
+            assert!(
+                backing_alloc.total_allocated() > initial_bytes,
+                "Memory must be allocated"
+            );
 
             // Keep pointers alive to prevent early dealloc
             core::mem::forget((ptr1, ptr2, ptr3));
@@ -784,10 +1166,12 @@ mod kani_proofs {
             // in reverse order: page2, page1, page0
         }
 
-        // After drop, all memory must be freed
-        let final_stats = backing_alloc.memory_statistics();
+        // After drop, all memory must be freed. Compared against the baseline
+        // rather than 0: `TOTAL_ALLOCATED` is process-global, so only the delta
+        // owned by this proof is meaningful.
         assert_eq!(
-            final_stats.total_bytes, 0,
+            backing_alloc.total_allocated(),
+            initial_bytes,
             "Drop must free all allocated pages"
         );
     }

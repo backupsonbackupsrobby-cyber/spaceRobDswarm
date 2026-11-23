@@ -17,14 +17,12 @@ pub enum spacewasm_read_result_t {
     SPACEWASM_READ_OK = 0,
     /// End of stream; no more bytes.
     SPACEWASM_READ_EOF = 1,
-    /// An I/O error occurred; loading fails with `SPACEWASM_ERR_STREAM`.
+    /// An I/O error occurred; loading fails with `SPACEWASM_ERR_READER_ERROR`.
     SPACEWASM_READ_ERROR = 2,
 }
 
-/// C callback that supplies the next chunk of a Wasm module. The callback owns
-/// the buffer: it sets `*out_buf` to point at the next chunk and `*out_len` to
-/// its length (0 == EOF). The chunk must stay valid until the next call to the
-/// callback (or until loading completes).
+/// Supplies the next chunk of a module: set `*out_buf` and `*out_len` (0 at
+/// EOF). The chunk must stay valid until the next call.
 pub type spacewasm_read_fn_t = Option<
     unsafe extern "C" fn(
         userdata: *mut c_void,
@@ -33,10 +31,8 @@ pub type spacewasm_read_fn_t = Option<
     ) -> spacewasm_read_result_t,
 >;
 
-/// A [`WasmStream`] that pulls chunks from a C callback. The callback owns the
-/// buffer backing each chunk and hands us a borrowed pointer, so the stream
-/// allocates nothing of its own — important under a strict-LIFO page allocator,
-/// where a scratch buffer freed mid-load would strand its page.
+/// A [`WasmStream`] over a C callback. Borrows each chunk, so it allocates
+/// nothing.
 pub struct CallbackStream {
     read: unsafe extern "C" fn(*mut c_void, *mut *const u8, *mut usize) -> spacewasm_read_result_t,
     userdata: *mut c_void,
@@ -85,10 +81,8 @@ impl WasmStream for CallbackStream {
                 // Hand the interpreter a borrowed view of the callback's buffer.
                 // `capacity: 0` ensures the `Chunk` drop assertion holds and no
                 // deallocation of borrowed memory is attempted.
-                Ok(Some(InnerVec {
-                    ptr: out_buf as *mut u8,
-                    capacity: 0,
-                    len: out_len as u32,
+                Ok(Some(unsafe {
+                    InnerVec::from_raw_parts(out_buf as *mut u8, 0, out_len)
                 }))
             }
         }

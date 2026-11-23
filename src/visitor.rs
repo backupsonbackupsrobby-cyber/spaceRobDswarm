@@ -16,14 +16,8 @@ macro_rules! visit_fn {
     };
 }
 
-/// An abstraction over Wasm IR and internal IR.
-/// This trait can be used to index, compile and execute either form of IR
-/// with the same common implementation. The decoding and traversal code will
-/// call into this visitor and is IR specific. This trait is purely for operating
-/// on decoded WebAssembly instructions.
-///
-/// Note: This visitor does not handle the control-flow instructions since those are
-///       IR-specific. See [WasmVisitor] and [IrVisitor]
+/// Visits the non-control-flow instructions shared by Wasm and the IR. Control
+/// flow is in [`WasmVisitor`] and [`IrVisitor`].
 pub trait BaseVisitor {
     type Error;
     type State;
@@ -31,6 +25,11 @@ pub trait BaseVisitor {
     // Control instructions
     visit_fn!(unreachable);
     visit_fn!(nop);
+
+    /// The decoder reached an opcode or immediate it cannot interpret.
+    fn malformed_ir(&self, state: &mut Self::State) -> Result<(), Self::Error> {
+        self.unreachable(state)
+    }
 
     // Control flow & parametric instructions are not handled by the base visitor
 
@@ -207,11 +206,41 @@ pub trait BaseVisitor {
     visit_fn!(f64_convert_i64_s);
     visit_fn!(f64_convert_i64_u);
     visit_fn!(f64_promote_f32);
+
+    // Sign extensions
+    visit_fn!(i32_extend8_s);
+    visit_fn!(i32_extend16_s);
+    visit_fn!(i64_extend8_s);
+    visit_fn!(i64_extend16_s);
+    visit_fn!(i64_extend32_s);
+
+    // Non-trapping float to int
+    visit_fn!(i32_trunc_sat_f32_s);
+    visit_fn!(i32_trunc_sat_f32_u);
+    visit_fn!(i32_trunc_sat_f64_s);
+    visit_fn!(i32_trunc_sat_f64_u);
+    visit_fn!(i64_trunc_sat_f32_s);
+    visit_fn!(i64_trunc_sat_f32_u);
+    visit_fn!(i64_trunc_sat_f64_s);
+    visit_fn!(i64_trunc_sat_f64_u);
 }
 
 /// An abstraction over Wasm Bytecode.
 /// Used to implement validation and compilation of Wasm bytecode.
 pub trait WasmVisitor: BaseVisitor {
+    /// Generic visitor instruction, useful for marking/collecting
+    /// information about the Wasm code as it's compiling into IR
+    #[cfg(feature = "ir-map")]
+    fn before_instruction(
+        &self,
+        state: &mut Self::State,
+        wasm_offset: usize,
+    ) -> Result<(), Self::Error> {
+        let _ = state;
+        let _ = wasm_offset;
+        Ok(())
+    }
+
     // Parametric instructions
     visit_fn!(drop);
     visit_fn!(select);

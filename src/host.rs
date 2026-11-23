@@ -5,7 +5,7 @@ use core::fmt::{Debug, Formatter};
 
 pub struct GlobalValueError;
 
-/// Error returned when a host name exceeds [`HOST_NAME_CAP`] bytes or is not
+/// Error returned when a host name exceeds its `CAPACITY` bytes or is not
 /// valid UTF-8.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HostNameError;
@@ -40,12 +40,12 @@ impl<const CAPACITY: usize> HostName<CAPACITY> {
     }
 
     /// Construct a host name from a string slice, panicking if it is longer
-    /// than [`HOST_NAME_CAP`]. Intended for compile-time string literals in
+    /// than `CAPACITY`. Intended for compile-time string literals in
     /// Rust code; use [`HostName::try_from_str`] on caller-supplied input.
     pub const fn new(s: &str) -> HostName<CAPACITY> {
         match HostName::build(s.as_bytes()) {
             Some(n) => n,
-            None => panic!("host name exceeds HOST_NAME_CAP"),
+            None => panic!("host name exceeds CAPACITY"),
         }
     }
 
@@ -158,26 +158,44 @@ pub enum HostFunctionBreak {
     /// Halt execution due to an error
     Trap,
 
-    /// Halt execution to perform work asynchronously
+    /// Halt execution to perform work asynchronously.
+    /// Requires host to [`Engine::resume`] interpreter before it can be run again
     Pause,
 }
 
 pub type HostFunctionResult = ControlFlow<HostFunctionBreak, Option<Value>>;
 
-/// Maximum number of values in a host function parameter / result signature.
-pub const HOST_SIGNATURE_CAP: usize = 63;
+/// Maximum number of parameters a host function may declare.
+pub const MAX_HOST_FUNCTION_PARAMS: usize = 9;
 
-/// Error returned when a host value signature contains an invalid character or
-/// exceeds [`HOST_SIGNATURE_CAP`] entries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct HostValListError;
+/// Error returned when processing a host function item
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HostFunctionError {
+    /// Each HostValList item must be i, I, f, or d
+    ValListInvalidItem,
+
+    /// Host function signature is longer than MAX_HOST_FUNCTION_PARAMS
+    ParameterListTooLong,
+
+    /// Multiple return values are not supported
+    MultiReturnNotAllowed,
+
+    /// Could not box host function closure
+    AllocError(AllocError),
+}
+
+impl From<AllocError> for HostFunctionError {
+    fn from(value: AllocError) -> Self {
+        HostFunctionError::AllocError(value)
+    }
+}
 
 /// An owned, bounded list of [`ValType`] describing a host function's
 /// parameters or results. Parsed from a signature string of the characters
 /// `i` (i32), `I` (i64), `f` (f32), `d` (f64).
 #[derive(Copy, Clone)]
 pub struct HostValList {
-    data: [ValType; HOST_SIGNATURE_CAP],
+    data: [ValType; MAX_HOST_FUNCTION_PARAMS],
     len: u8,
 }
 
@@ -194,13 +212,13 @@ impl From<HostValList> for ResultType {
 }
 
 impl HostValList {
-    fn map_char(c: char) -> Result<ValType, HostValListError> {
+    fn map_char(c: char) -> Result<ValType, HostFunctionError> {
         match c {
             'i' => Ok(ValType::I32),
             'I' => Ok(ValType::I64),
             'f' => Ok(ValType::F32),
             'd' => Ok(ValType::F64),
-            _ => Err(HostValListError),
+            _ => Err(HostFunctionError::ValListInvalidItem),
         }
     }
 
@@ -208,19 +226,19 @@ impl HostValList {
     /// signature. Intended for compile-time string literals in Rust code; use
     /// [`HostValList::try_new`] on caller-supplied input.
     pub fn new(s: &str) -> Self {
-        HostValList::try_new(s).expect("invalid host value signature")
+        HostValList::try_new(s).expect_nofmt("invalid host value signature")
     }
 
     /// Fallibly construct a signature list. Returns an error if any character
-    /// is not one of `iIfd` or the signature exceeds [`HOST_SIG_CAP`] entries.
+    /// is not one of `iIfd` or the signature exceeds [`MAX_HOST_FUNCTION_PARAMS`] entries.
     /// This is the FFI-safe constructor.
-    pub fn try_new(s: &str) -> Result<Self, HostValListError> {
-        let mut data = [ValType::I32; HOST_SIGNATURE_CAP];
+    pub fn try_new(s: &str) -> Result<Self, HostFunctionError> {
+        let mut data = [ValType::I32; MAX_HOST_FUNCTION_PARAMS];
         let mut len = 0usize;
 
         for c in s.chars() {
-            if len >= HOST_SIGNATURE_CAP {
-                return Err(HostValListError);
+            if len >= MAX_HOST_FUNCTION_PARAMS {
+                return Err(HostFunctionError::ParameterListTooLong);
             }
             data[len] = HostValList::map_char(c)?;
             len += 1;
@@ -312,8 +330,8 @@ pub const HOST_FUNCTION_NAME_CAP: usize = 31;
 pub struct HostFunction {
     name: HostName<HOST_FUNCTION_NAME_CAP>,
     params: HostValList,
-    returns: HostValList,
-    f: HostFunctionFn,
+    returns: ResultType,
+    f: Option<HostFunctionFn>,
 }
 
 impl Debug for HostFunction {
@@ -321,7 +339,7 @@ impl Debug for HostFunction {
         f.debug_struct("HostFunction")
             .field("name", &self.name)
             .field("params", &self.params.as_slice())
-            .field("returns", &self.returns.as_slice())
+            .field("returns", &self.returns)
             .finish()
     }
 }
@@ -334,21 +352,25 @@ pub struct HostSymbol<const NAME_CAPACITY: usize, T> {
 
 pub const HOST_MODULE_NAME_CAP: usize = 31;
 
+/// Name capacity for host-provided memory and table symbols.
+pub const HOST_SYMBOL_NAME_CAP: usize = 15;
+
 #[derive(Debug)]
 pub struct HostModule {
     /// Module name
     pub name: HostName<HOST_MODULE_NAME_CAP>,
     pub globals: Vec<HostGlobal>,
     pub functions: Vec<HostFunction>,
-    pub memory: Vec<HostSymbol<15, Rc<Memory>>>,
-    pub table: Vec<HostSymbol<15, (Rc<[TableElement]>, Limit)>>,
+    pub memory: Vec<HostSymbol<HOST_SYMBOL_NAME_CAP, Rc<Memory>>>,
+    pub table: Vec<HostSymbol<HOST_SYMBOL_NAME_CAP, (Rc<[TableElement]>, Limit)>>,
 }
 
 impl HostFunction {
-    /// Construct a host function. `name`, `params`, and `returns` are checked
-    /// via the panicking [`HostName::new`] / [`HostValList::new`] constructors,
-    /// so this is only appropriate for compile-time-known values in Rust code.
-    /// FFI callers should validate input and use [`HostFunction::try_new`].
+    /// Construct a host function from values known at compile time.
+    ///
+    /// # Panics
+    /// If the signature is invalid or allocation fails. Use
+    /// [`HostFunction::try_new`] for caller-supplied input.
     pub fn new(
         name: impl Into<HostName<HOST_FUNCTION_NAME_CAP>>,
         params: HostValList,
@@ -356,7 +378,7 @@ impl HostFunction {
         f: impl Fn(&mut Engine, &[Value]) -> HostFunctionResult + 'static,
     ) -> Self {
         HostFunction::try_new(name.into(), params, returns, f)
-            .expect("host function signature too large")
+            .expect_nofmt("host function signature too large or invalid return value")
     }
 
     /// Fallibly construct a host function, returning an error if the parameter
@@ -367,22 +389,28 @@ impl HostFunction {
         params: HostValList,
         returns: HostValList,
         f: impl Fn(&mut Engine, &[Value]) -> HostFunctionResult + 'static,
-    ) -> Result<Self, HostValListError> {
-        let ps = params.iter().fold(0, |n, i| n + i.size()) / 4;
-        if ps > 0xFFFF {
-            return Err(HostValListError);
+    ) -> Result<Self, HostFunctionError> {
+        if params.len() > MAX_HOST_FUNCTION_PARAMS {
+            return Err(HostFunctionError::ParameterListTooLong);
         }
 
-        let rs = returns.iter().fold(0, |n, i| n + i.size()) / 4;
-        if rs > 0xFFFF {
-            return Err(HostValListError);
+        // Make sure the max host functions (even if all i64) fit in the IR
+        const { assert!(MAX_HOST_FUNCTION_PARAMS.saturating_mul(2) <= 0xFFFF) };
+
+        let mut rs: Option<ValType> = None;
+        for r in returns.iter() {
+            if rs.is_some() {
+                return Err(HostFunctionError::MultiReturnNotAllowed);
+            }
+
+            rs = Some(r);
         }
 
         Ok(HostFunction {
             name,
             params,
-            returns,
-            f: Box::new(f).unwrap().into_host_function_dyn(),
+            returns: ResultType(rs),
+            f: Some(Box::new(f)?.into_host_function_dyn()),
         })
     }
 
@@ -390,7 +418,7 @@ impl HostFunction {
         self.params
     }
 
-    pub fn returns(&self) -> HostValList {
+    pub fn returns(&self) -> ResultType {
         self.returns
     }
 
@@ -398,15 +426,19 @@ impl HostFunction {
         self.params.iter().fold(0, |n, i| n + i.size()) / 4
     }
 
-    pub fn get_call(&mut self) -> HostFunctionFn {
-        core::mem::replace(
-            &mut self.f,
-            Box::new(placeholder).unwrap().into_host_function_dyn(),
-        )
+    /// Take the closure out for one call, so it can borrow the engine that owns it.
+    /// Return it with [`HostFunction::finish_call`]. `None` if already taken, i.e.
+    /// the host function re-entered itself.
+    pub fn get_call(&mut self) -> Option<HostFunctionFn> {
+        self.f.take()
     }
 
+    /// Restore the closure previously taken by [`HostFunction::get_call`] once
+    /// the call has returned. Must be paired with exactly one preceding
+    /// `get_call`; the closure returns to the always-`Some` steady state.
     pub fn finish_call(&mut self, f: HostFunctionFn) {
-        let _ = core::mem::replace(&mut self.f, f);
+        let other = self.f.replace(f);
+        debug_assert!(other.is_none());
     }
 
     pub fn name(&self) -> &str {
@@ -414,6 +446,36 @@ impl HostFunction {
     }
 }
 
-fn placeholder(_: &mut Engine, _: &[Value]) -> HostFunctionResult {
-    panic!("invoked invalid host module")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dummy() -> HostFunction {
+        HostFunction::new(
+            "dummy",
+            HostValList::new("ii"),
+            HostValList::new(""),
+            |_, _| ControlFlow::Continue(None),
+        )
+    }
+
+    // `get_call` must move the closure out (no per-call allocation) and
+    // `finish_call` must restore it. A second `get_call` while the closure is
+    // out models a reentrant invocation and must observe `None` rather than
+    // panicking (findings: non-allocating get_call + reentrancy-as-trap).
+    #[test]
+    fn get_call_takes_and_finish_call_restores() {
+        let mut f = dummy();
+
+        // Steady state: the closure is present.
+        let taken = f.get_call();
+        assert!(taken.is_some());
+
+        // While the closure is out, a reentrant `get_call` observes `None`.
+        assert!(f.get_call().is_none());
+
+        // Restoring returns to the always-`Some` steady state.
+        f.finish_call(taken.unwrap());
+        assert!(f.get_call().is_some());
+    }
 }

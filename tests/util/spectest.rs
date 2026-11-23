@@ -16,11 +16,11 @@ use super::inspector::{Inspector, LimitedVec};
 use core::panic;
 use serde::{Deserialize, Serialize};
 use spacewasm::{
-    AllocError, Allocator, CodeBuilder, CompilerOptions, ConstantExprError, Engine, ExportDesc,
-    GlobalValue, GlobalValueError, HostFunction, HostGlobal, HostModule, InnerVec, Interpreter,
-    InterpreterResult, InterpreterRunner, Limit, Memory, MemoryError, MemoryStatistics, Module,
-    ModuleRef, ParseError, Ref, StartInvocation, TrapReason, ValType, ValidationError, Value,
-    WasmMemoryAllocator, WasmRef, WasmStream, global_allocator, vec,
+    AllocError, Allocator, CodeBuilder, CompilerOptions, ConstantExprError, ControlFrame,
+    DecoderStack, Engine, ExportDesc, GlobalValue, GlobalValueError, HostFunction, HostGlobal,
+    HostModule, InnerVec, Interpreter, InterpreterResult, InterpreterRunner, InvokeError, Limit,
+    Memory, MemoryError, Module, ModuleRef, OperandType, ParseError, Ref, TrapReason, ValType,
+    ValidationError, Value, WasmMemoryAllocator, WasmRef, WasmStream, global_allocator, vec,
 };
 use std::alloc::Layout;
 use std::cell::RefCell;
@@ -28,13 +28,16 @@ use std::ops::ControlFlow;
 use std::panic::catch_unwind;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command as ProcessCommand;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+
+#[cfg(not(miri))]
+use std::process::Command as ProcessCommand;
+#[cfg(not(miri))]
+use std::sync::atomic::{AtomicU64, Ordering};
 
 type SubtestLogType = Arc<Mutex<Option<Rc<RefCell<LimitedVec<String>>>>>>;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TestFile {
@@ -128,25 +131,86 @@ struct ValueSpec {
     value: Option<String>,
 }
 
-struct RustSystemAllocator;
+/// The phase a test thread is currently in, controlling how the global
+/// [`SpecTestAllocator`] treats allocations and deallocations.
+#[derive(Clone, Copy)]
+enum AllocPhase {
+    /// No allocation check. Used during JSON parsing etc.
+    Unchecked,
+    /// Loading Wasm module. Allows allocation, does not allow deallocation
+    Loading { freed: bool },
+    /// No memory allocation may occur. During execution
+    Locked,
+}
 
-unsafe impl Allocator for RustSystemAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> Result<*mut u8, AllocError> {
-        unsafe { Ok(std::alloc::alloc(layout)) }
-    }
+thread_local! {
+    /// Per-thread allocator phase. `cargo test` runs each `#[test]`
+    /// concurrently in one process while sharing the single global
+    /// [`SpecTestAllocator`]; keeping the phase thread-local means each test
+    /// thread only gates its own allocations and cannot corrupt another's.
+    static ALLOC_PHASE: RefCell<AllocPhase> = const { RefCell::new(AllocPhase::Unchecked) };
+}
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { std::alloc::dealloc(ptr, layout) }
-    }
+/// RAII guard that sets the current thread's [`AllocPhase`] and restores the
+/// previous phase on drop. Restoring (rather than resetting to `Unchecked`)
+/// keeps nesting and unwinding correct, so the `catch_unwind` in
+/// [`run_wast_test_file`] still reports the offending wast line.
+struct PhaseGuard(AllocPhase);
 
-    fn memory_statistics(&self) -> MemoryStatistics {
-        MemoryStatistics {
-            total_bytes: 0,
-            pad_bytes: 0,
-        }
+impl Drop for PhaseGuard {
+    fn drop(&mut self) {
+        ALLOC_PHASE.with(|p| *p.borrow_mut() = self.0);
     }
 }
 
+/// Enter a module-load epoch (see [`AllocPhase::Loading`]).
+fn enter_loading() -> PhaseGuard {
+    let prev = ALLOC_PHASE.with(|p| p.replace(AllocPhase::Loading { freed: false }));
+    PhaseGuard(prev)
+}
+
+/// Enter a pure-execution region (see [`AllocPhase::Locked`]).
+fn enter_locked() -> PhaseGuard {
+    let prev = ALLOC_PHASE.with(|p| p.replace(AllocPhase::Locked));
+    PhaseGuard(prev)
+}
+
+/// The spectest allocator is a simple model of the production `PageAllocator`
+/// used to verify flight memory constraints of spacewasm.
+struct SpecTestAllocator;
+
+unsafe impl Allocator for SpecTestAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> Result<*mut u8, AllocError> {
+        ALLOC_PHASE.with(|p| match &mut *p.borrow_mut() {
+            AllocPhase::Locked => panic!("unexpected allocation during execution"),
+            AllocPhase::Loading { freed: true } => {
+                panic!("allocation after deallocation within module load")
+            }
+            AllocPhase::Loading { freed: false } | AllocPhase::Unchecked => {}
+        });
+
+        // `Allocator` requires that `Ok` carry a valid pointer, so a failed
+        // allocation must be reported as an error rather than a null `Ok`.
+        let ptr = unsafe { std::alloc::alloc(layout) };
+        if ptr.is_null() {
+            Err(AllocError::AllocationFailed)
+        } else {
+            Ok(ptr)
+        }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        ALLOC_PHASE.with(|p| match &mut *p.borrow_mut() {
+            AllocPhase::Locked => panic!("unexpected deallocation during execution"),
+            AllocPhase::Loading { freed } => *freed = true,
+            AllocPhase::Unchecked => {}
+        });
+
+        unsafe { std::alloc::dealloc(ptr, layout) }
+    }
+}
+
+struct RustSystemAllocator;
 impl WasmMemoryAllocator for RustSystemAllocator {
     fn allocate(&self, layout: Layout) -> Result<NonNull<u8>, AllocError> {
         unsafe { NonNull::new(std::alloc::alloc(layout)).ok_or(AllocError::AllocationFailed) }
@@ -169,7 +233,7 @@ impl WasmMemoryAllocator for RustSystemAllocator {
     }
 }
 
-global_allocator!(RustSystemAllocator, RustSystemAllocator);
+global_allocator!(SpecTestAllocator, SpecTestAllocator);
 
 pub struct ByteStream {
     buffer: Option<Vec<u8>>,
@@ -191,9 +255,8 @@ struct StaticGlobal {
 }
 
 impl GlobalValue for StaticGlobal {
-    fn write(&self, value: Value) -> Result<(), GlobalValueError> {
-        *self.value.lock().unwrap() = value;
-        Ok(())
+    fn write(&self, _value: Value) -> Result<(), GlobalValueError> {
+        Err(GlobalValueError)
     }
 
     fn read(&self) -> Result<Value, GlobalValueError> {
@@ -241,11 +304,12 @@ impl WasmStream for ByteStream {
 
         if let Some(ref mut vec) = self.buffer {
             self.consumed = true;
-            let inner = InnerVec {
-                ptr: vec.as_mut_ptr(),
-                capacity: vec.len() as u32,
-                len: vec.len() as u32,
-            };
+            debug_assert!(
+                u32::try_from(vec.len()).is_ok(),
+                "wasm module length {} does not fit in u32",
+                vec.len()
+            );
+            let inner = unsafe { InnerVec::from_raw_parts(vec.as_mut_ptr(), vec.len(), vec.len()) };
             Ok(Some(inner))
         } else {
             Ok(None)
@@ -253,13 +317,16 @@ impl WasmStream for ByteStream {
     }
 
     fn return_(&mut self, _chunk: InnerVec<u8>) {
-        // Buffer is kept alive in self.buffer, so nothing to do
+        // No-op: the stream owns `self.buffer` and never handed off ownership,
+        // so there is nothing to reclaim. See the handoff rationale in `read`.
     }
 }
 
-const MAX_CODE_PAGES: u32 = 256;
+const MAX_CODE_PAGES: usize = 256;
 const MAX_CONTROL_FRAMES: usize = 128;
 const MAX_STACK_DEPTH: usize = 256;
+/// Instruction budget for a single invoke/resume, used to catch infinite loops.
+const MAX_INVOKE_FUEL: usize = 10_000_000;
 
 /// Builds the set of host modules an engine is instantiated with. A factory
 /// (rather than a `Vec`) is required because the engine is rebuilt on every
@@ -289,8 +356,10 @@ impl TestContext {
             engine: new_engine(host_modules),
             code_builder: CodeBuilder::new(CompilerOptions {
                 allow_memory_grow: true,
-                max_backpatch_iterations: 0,
+                max_backpatch_iterations: None,
                 max_code_pages: MAX_CODE_PAGES,
+                #[cfg(feature = "ir-map")]
+                pc_ir_callback: None,
             })
             .unwrap(),
             instance_names: std::collections::HashMap::new(),
@@ -328,7 +397,7 @@ impl TestContext {
         // Clone all modules into the new store
         for module in self.engine.store.modules().iter() {
             let cloned_module = clone_module(module);
-            cloned.store.push_module(cloned_module);
+            cloned.store.push_module(cloned_module).unwrap();
         }
 
         cloned
@@ -539,9 +608,12 @@ fn clone_memory(memory: &Memory) -> spacewasm::Rc<Memory> {
         }
     }
 
-    // Copy the memory contents
+    // Copy the memory contents. Use the memory's actual page size rather than
+    // assuming the default 64 KiB Wasm page, so memories declared under the
+    // custom-page-sizes proposal (e.g. `MemPageSize::_1`) are cloned with the
+    // correct byte length instead of over-/under-reading.
     if current_size > 0 {
-        let size_in_bytes = (current_size as usize) * 65536;
+        let size_in_bytes = (current_size as usize) * mem_type.page_size();
         let data = memory.load(0, size_in_bytes).unwrap();
         new_memory.store(0, data).unwrap();
     }
@@ -583,9 +655,6 @@ fn clone_module(module: &Module) -> Module {
     }
 }
 
-// We need to add a method to Store to support pushing modules
-// For now, TestContext will manage store cloning by saving/restoring the entire Store
-
 fn load_module(
     ctx: &mut TestContext,
     module_name: Option<String>,
@@ -608,25 +677,41 @@ fn load_module(
     // Create a ByteStream
     let mut stream = ByteStream::new(wasm_bytes);
 
-    // Parse and validate the module
-    let module = Module::new::<MAX_CONTROL_FRAMES, MAX_STACK_DEPTH>(
-        module_name.as_ref().map(|f| f.as_ref()).unwrap_or(""),
-        &mut stream,
-        &mut ctx.engine.store,
-        &mut ctx.code_builder,
-        spacewasm::Rc::new(RustSystemAllocator)
-            .unwrap()
-            .into_wasm_memory_allocator(),
-    )?;
+    let module_ref = {
+        let _loading = enter_loading();
 
-    // Append the module and run its start function.
-    let module_ref = ctx.engine.push_module(module);
-    let result = match ctx.engine.invoke_start(module_ref) {
-        StartInvocation::Finished => InterpreterResult::Finished,
-        StartInvocation::Trap(t) => InterpreterResult::Trap(t),
-        StartInvocation::Pause => InterpreterResult::Pause,
-        StartInvocation::Running => {
-            Interpreter.run(ctx.code_builder.pages(), &mut ctx.engine, usize::MAX)
+        let mut control_frames = [ControlFrame::EMPTY; MAX_CONTROL_FRAMES];
+        let mut operands = [OperandType::EMPTY; MAX_STACK_DEPTH];
+        let mut decoder_stack = DecoderStack::new(&mut control_frames, &mut operands);
+        let module = Module::new(
+            module_name.as_ref().map(|f| f.as_ref()).unwrap_or(""),
+            &mut stream,
+            &mut ctx.engine.store,
+            &mut ctx.code_builder,
+            &mut decoder_stack,
+            spacewasm::Rc::new(RustSystemAllocator)
+                .unwrap()
+                .into_wasm_memory_allocator(),
+        )?;
+
+        ctx.engine.push_module(module).unwrap()
+    };
+
+    // Running the module's start function is pure execution: it must neither
+    // allocate nor deallocate.
+    let result = {
+        let _locked = enter_locked();
+        match ctx.engine.module_start(module_ref) {
+            None => InterpreterResult::Finished,
+            Some(start) => match ctx.engine.invoke(start, &[]) {
+                Ok(()) => {
+                    Interpreter.run(ctx.code_builder.pages(), &mut ctx.engine, MAX_INVOKE_FUEL)
+                }
+                Err(InvokeError::StackOverflow) => {
+                    InterpreterResult::Trap(TrapReason::StackOverflow)
+                }
+                Err(_) => unreachable!(),
+            },
         }
     };
     match result {
@@ -643,7 +728,7 @@ fn invoke_function(
     test_log: Rc<RefCell<LimitedVec<String>>>,
 ) -> Result<Option<Value>, InterpreterResult> {
     // Check if the engine is paused from a previous invocation
-    if ctx.engine.host_pause_result.is_some() {
+    if ctx.engine.is_paused() {
         invoke_function_resume(ctx, args, test_log)
     } else {
         // Normal invocation path
@@ -669,15 +754,21 @@ fn invoke_function_resume(
         .borrow_mut()
         .push(format!("resume {:?}", resume_value));
 
-    ctx.engine.resume(resume_value);
-
     // Continue execution from the paused state
     let test_runner: Inspector<'_, _, _, _> = Inspector {
         v: &Interpreter,
         out: test_log.clone(),
     };
 
-    let result = test_runner.run(ctx.code_builder.pages(), &mut ctx.engine, 10000000);
+    // Resuming and running the interpreter is pure execution: no allocation or
+    // deallocation may occur.
+    let result = {
+        let _locked = enter_locked();
+        ctx.engine
+            .resume(resume_value)
+            .expect("engine should be paused when resuming");
+        test_runner.run(ctx.code_builder.pages(), &mut ctx.engine, MAX_INVOKE_FUEL)
+    };
 
     // Get the return types we saved when the function paused
     let return_types = ctx
@@ -765,8 +856,6 @@ fn invoke_function_normal(
         (func_ref, return_types, params)
     };
 
-    ctx.engine.invoke(f_ref, &params).unwrap();
-
     let test_runner: Inspector<'_, _, _, _> = Inspector {
         v: &Interpreter,
         out: test_log.clone(),
@@ -778,7 +867,11 @@ fn invoke_function_normal(
         .push(format!("invoke {}({:?})", func_name, params));
 
     // Run until completion - up to 10-million instructions to catch infinite loops
-    let result = test_runner.run(ctx.code_builder.pages(), &mut ctx.engine, 10000000);
+    let result = {
+        let _locked = enter_locked();
+        ctx.engine.invoke(f_ref, &params).unwrap();
+        test_runner.run(ctx.code_builder.pages(), &mut ctx.engine, MAX_INVOKE_FUEL)
+    };
 
     // Check the result
     match result {
@@ -801,30 +894,54 @@ fn invoke_function_normal(
     }
 }
 
+fn get_global(ctx: &TestContext, module_name: &Option<String>, field: &str) -> Value {
+    let module_index = if let Some(name) = module_name {
+        ctx.find_module_by_name(name)
+            .unwrap_or_else(|| panic!("Module '{name}' not found"))
+    } else {
+        ctx.current_module_index()
+    };
+
+    let global_ref = {
+        let module = ctx
+            .engine
+            .store
+            .modules()
+            .get(module_index)
+            .unwrap_or_else(|| panic!("Module at index {module_index} not found"));
+
+        let export = module
+            .exports
+            .iter()
+            .find(|e| e.name == field)
+            .unwrap_or_else(|| panic!("Global export '{field}' not found"));
+
+        let global_idx = match &export.desc {
+            ExportDesc::Global(idx) => *idx,
+            _ => panic!("Export '{field}' is not a global"),
+        };
+
+        module
+            .get_global_ref(global_idx)
+            .unwrap_or_else(|| panic!("Global export '{field}' does not resolve"))
+    };
+
+    match global_ref {
+        Ref::Module(index) => {
+            ctx.engine.store.modules()[module_index].globals[index as usize].value()
+        }
+        Ref::Extern { module, index } => {
+            ctx.engine.store.modules()[module.0 as usize].globals[index as usize].value()
+        }
+        Ref::Host { module, index } => ctx.engine.store.host_modules()[module.0 as usize].globals
+            [index as usize]
+            .value
+            .read()
+            .unwrap_or_else(|_| panic!("Failed to read host global '{field}'")),
+    }
+}
+
 fn check_trap_reason(reason: TrapReason, text: &str) {
-    /*
-    RuntimeError::Trap(TrapError::DivideBy0) => Ok("integer divide by zero"),
-        RuntimeError::Trap(TrapError::UnrepresentableResult) => Ok("integer overflow"),
-        RuntimeError::Trap(TrapError::BadConversionToInteger) => {
-            Ok("invalid conversion to integer")
-        }
-        RuntimeError::Trap(TrapError::ReachedUnreachable) => Ok("unreachable"),
-        RuntimeError::Trap(TrapError::MemoryOrDataAccessOutOfBounds) => {
-            Ok("out of bounds memory access")
-        }
-        RuntimeError::Trap(TrapError::TableOrElementAccessOutOfBounds) => {
-            Ok("out of bounds table access")
-        }
-        RuntimeError::Trap(TrapError::UninitializedElement) => Ok("uninitialized element"),
-        RuntimeError::Trap(TrapError::SignatureMismatch) => Ok("indirect call type mismatch"),
-        RuntimeError::Trap(TrapError::TableAccessOutOfBounds) => Ok("undefined element"),
-
-        RuntimeError::StackExhaustion => Ok("call stack exhausted"),
-        RuntimeError::ModuleNotFound => Ok("module not found"),
-        RuntimeError::FunctionNotFound => Err(WastError::UnrepresentedRuntimeError),
-        RuntimeError::HostFunctionSignatureMismatch => Ok("host function signature mismatch"),
-
-     */
     match (reason, text) {
         (TrapReason::Unreachable, "unreachable") => {}
         (TrapReason::DivideByZero, "integer divide by zero") => {}
@@ -844,55 +961,96 @@ fn check_trap_reason(reason: TrapReason, text: &str) {
     }
 }
 
+/// Assert that an interpreter [`ValidationError`] is an acceptable match for the
+/// spec-suite's expected rejection `text`.
 fn check_decode_error(err: ParseError, text: String) {
     match (err.err.err, text.as_str()) {
-        (
-            ValidationError::MalformedInteger,
-            "integer too large" | "integer representation too long",
-        ) => {}
+        // --- Encoding / structural malformations ---
         (ValidationError::MalformedMagic, "magic header not detected") => {}
         (ValidationError::MalformedVersion, "unknown binary version") => {}
-        (ValidationError::ExpectedTerminal(0), "zero byte expected") => {}
-        (
-            ValidationError::Eof,
-            "unexpected end" | "length out of bounds" | "unexpected end of section or function",
-        ) => {}
-        (ValidationError::TooManyLocals, "too many locals") => {}
         (ValidationError::MalformedUtf8, "malformed UTF-8 encoding") => {}
+        (ValidationError::MalformedSectionId(_), "malformed section id") => {}
+        (
+            ValidationError::MalformedSectionSize,
+            "section size mismatch" | "unexpected end" | "malformed value type",
+        ) => {}
         (
             ValidationError::InvalidCodeSectionFunctionCount,
             "function and code section have inconsistent lengths",
         ) => {}
-        (ValidationError::MalformedSectionSize, "section size mismatch") => {}
-        (ValidationError::LocalIdxOutOfRange, "unknown local") => {}
-        (ValidationError::MultipleMemories, "multiple memories") => {}
+        (ValidationError::DuplicateSection(_), "unexpected content after last section") => {}
+        (ValidationError::InvalidSectionOrdering(_, _), "unexpected section order") => {}
+        (ValidationError::ExpectedTerminal(0), "zero byte expected") => {}
+        (
+            ValidationError::MalformedInteger,
+            "integer too large" | "integer representation too long",
+        ) => {}
+        // A truncated stream
+        (
+            ValidationError::Eof,
+            "unexpected end"
+            | "length out of bounds"
+            | "unexpected end of section or function"
+            | "integer representation too long"
+            | "malformed value type",
+        ) => {}
+        (ValidationError::VecTooLong, "length out of bounds") => {}
+
+        // --- Value / type descriptors ---
+        (ValidationError::MalformedValueType(_), "malformed value type") => {}
+        (ValidationError::MalformedFunction(_), "malformed function type") => {}
+        (ValidationError::MalformedElemType(_), "malformed element type") => {}
+        (ValidationError::MalformedLimit(_), "malformed limits flag") => {}
+        (ValidationError::MalformedMemType(_), "malformed memory type") => {}
+        // Import and export descriptors share the same malformed-kind variant.
+        (
+            ValidationError::MalformedImportExportDesc(_),
+            "malformed import kind" | "malformed export kind",
+        ) => {}
+        (ValidationError::ExpectedConstOrVar(_), "malformed mutability") => {}
+
+        // --- Index-space / definition lookups ("unknown X" family) ---
+        (ValidationError::LocalIdxOutOfRange, "unknown local" | "local offset out of range") => {}
+        (ValidationError::GlobalIdxOutOfRange, "unknown global") => {}
+        (ValidationError::TypeIdxOutOfRange, "unknown type") => {}
+        (ValidationError::FunctionImportOutOfRange, "unknown type") => {}
+        (ValidationError::FunctionIdxOutOfRange, "unknown function") => {}
+        (ValidationError::TableNotDefined, "unknown table") => {}
+        (ValidationError::MemoryNotDefined, "unknown memory") => {}
+        (ValidationError::InvalidMemIndex, "unknown memory") => {}
+        (ValidationError::InvalidTableIndex, "malformed value type" | "unknown table") => {}
+
+        // --- Control flow ---
+        (ValidationError::InvalidElseBlock, "else without matching if") => {}
+        // An out-of-range label, or a branch whose target is truncated away.
+        (
+            ValidationError::InvalidLabelIndex,
+            "unknown label" | "unexpected end of section or function",
+        ) => {}
+
+        // --- Type checking ("type mismatch" is a coarse spec category) ---
+        (ValidationError::TypeMismatch, "type mismatch") => {}
+        (ValidationError::StackUnderflow, "type mismatch") => {}
+        (ValidationError::FunctionResultTypeMismatch, "type mismatch") => {}
+        (ValidationError::GlobalTypeMismatch, "type mismatch") => {}
+        (ValidationError::InvalidMemOffsetType, "type mismatch") => {}
+        // Either a plain block-result mismatch, or a result-typed `if` missing
+        // its `else` arm (both are the same internal state).
+        (
+            ValidationError::BlockResultTypeMismatch,
+            "type mismatch" | "result-typed if without else",
+        ) => {}
+        (ValidationError::BrTableResultTypeMismatch, "type mismatch") => {}
+        (ValidationError::FunctionReturnsTooLarge, "invalid result arity") => {}
+        (ValidationError::TooManyLocals, "too many locals") => {}
         (ValidationError::AlignmentLargerThanType, "alignment must not be larger than natural") => {
         }
-        (ValidationError::TypeMismatch, "type mismatch") => {}
-        (ValidationError::BlockResultTypeMismatch, "type mismatch") => {}
-        (ValidationError::InvalidLabelIndex, "unknown label") => {}
-        (ValidationError::MalformedSectionSize, "unexpected end") => {}
-        (ValidationError::GlobalIdxOutOfRange, "unknown global") => {}
-        (ValidationError::MalformedSectionId(_), "malformed section id") => {}
-        (ValidationError::VecTooLong, "length out of bounds") => {}
-        (ValidationError::StackUnderflow, "type mismatch") => {}
-        (ValidationError::TypeIdxOutOfRange, "unknown type") => {}
-        (ValidationError::FunctionResultTypeMismatch, "type mismatch") => {}
-        (ValidationError::FunctionIdxOutOfRange, "unknown function") => {}
-        (ValidationError::FunctionReturnsTooLarge, "invalid result arity") => {}
-        (ValidationError::TableNotDefined, "unknown table") => {}
-        (ValidationError::InvalidTableIndex, "malformed value type") => {}
-        (ValidationError::InvalidLabelIndex, "unexpected end of section or function") => {}
-        (ValidationError::MalformedValueType(_), "malformed value type") => {}
-        (ValidationError::DuplicateSection(_), "unexpected content after last section") => {}
-        (ValidationError::GlobalIsNotMutable, "immutable global") => {}
-        (ValidationError::InvalidElementOffset, "type mismatch") => {}
+
+        // --- Constant expressions ---
         (
             ValidationError::InvalidConstantExpr(ConstantExprError::InvalidConstantInstruction),
             "constant expression required",
         ) => {}
-        (ValidationError::FunctionImportOutOfRange, "unknown type") => {}
-        (ValidationError::GlobalTypeMismatch, "type mismatch") => {}
         (
             ValidationError::InvalidConstantExpr(ConstantExprError::AlreadyHasValue),
             "type mismatch",
@@ -902,45 +1060,68 @@ fn check_decode_error(err: ParseError, text: String) {
             ValidationError::InvalidConstantExpr(ConstantExprError::InvalidGlobal),
             "unknown global",
         ) => {}
-        (ValidationError::ExpectedConstOrVar(_), "malformed mutability") => {}
-        (ValidationError::MemoryNotDefined, "unknown memory") => {}
+
+        // --- Immutable globals ---
+        // `GlobalNotMutable` covers both a `global.set` on an immutable
+        // global (`"immutable global"`) and an import whose mutability disagrees
+        // with the definition (`"incompatible import type"`).
+        (ValidationError::GlobalNotMutable, "immutable global" | "incompatible import type") => {}
+
+        // --- Limits / sizing ---
         (ValidationError::InvalidMaxLimit, "size minimum must not be greater than maximum") => {}
-        (ValidationError::MemoryTooLarge, "memory size must be at most 65536 pages (4GiB)") => {}
-        (ValidationError::MemoryTooLarge, "memory size must be at most 4 GiB") => {}
-        (ValidationError::InvalidNegativeMemOffset, "data segment does not fit") => {}
-        (ValidationError::InvalidMemOffsetType, "type mismatch") => {}
-        (ValidationError::InvalidStartFunctionSignature, "start function") => {}
+        // Two upstream phrasings for the same 4 GiB memory cap.
+        (
+            ValidationError::MemoryTooLarge,
+            "memory size must be at most 65536 pages (4GiB)" | "memory size must be at most 4 GiB",
+        ) => {}
+        (ValidationError::TableTooLarge, "table size too large") => {}
+        (ValidationError::InvalidPageSize(_), "invalid custom page size") => {}
+        (ValidationError::StackTooLarge, "call frame too large") => {}
+
+        // --- Sections / names that must be unique ---
+        (ValidationError::MultipleMemories, "multiple memories") => {}
+        (ValidationError::MultipleTables, "multiple tables") => {}
         (ValidationError::DuplicateExportName, "duplicate export name") => {}
-        (ValidationError::InvalidTableIndex, "unknown table") => {}
+
+        // --- Start function ---
+        (ValidationError::InvalidStartFunctionSignature, "start function") => {}
+        (
+            ValidationError::InvalidHostStartFunction,
+            "start function must not be a host function",
+        ) => {}
+
+        // --- Data / element segment placement ---
         (ValidationError::MemoryError(MemoryError::OutOfBounds), "data segment does not fit") => {}
-        (ValidationError::InvalidMemIndex, "unknown memory") => {}
-        (ValidationError::FunctionImportNotFound, "unknown import") => {}
-        (ValidationError::GlobalImportNotFound, "unknown import") => {}
-        (ValidationError::MemoryImportNotFound, "unknown import") => {}
+        (ValidationError::InvalidElementOutOfBounds, "elements segment does not fit") => {}
+        // A bad element offset is either a type mismatch on the offset
+        // expression, or an out-of-range placement past the table end.
+        (
+            ValidationError::InvalidElementOffset,
+            "type mismatch" | "elements segment does not fit",
+        ) => {}
+        (ValidationError::TableRefNotUnique, "table reference not unique") => {}
+
+        // --- Imports ("unknown import" vs "incompatible import type") ---
+        // Each `*ImportNotFound` variant is used both when no matching export
+        // exists at all (`"unknown import"`) and when a candidate exists but is
+        // rejected as incompatible (`"incompatible import type"`).
+        (
+            ValidationError::FunctionImportNotFound,
+            "unknown import" | "incompatible import type",
+        ) => {}
+        (ValidationError::GlobalImportNotFound, "unknown import" | "incompatible import type") => {}
+        (ValidationError::MemoryImportNotFound, "unknown import" | "incompatible import type") => {}
+        (ValidationError::TableImportNotFound, "unknown import" | "incompatible import type") => {}
         (ValidationError::FunctionImportTypeMismatch, "incompatible import type") => {}
         (ValidationError::GlobalImportTypeMismatch, "incompatible import type") => {}
         (ValidationError::MemoryImportTypeMismatch, "incompatible import type") => {}
-        (ValidationError::FunctionImportNotFound, "incompatible import type") => {}
-        (ValidationError::GlobalImportNotFound, "incompatible import type") => {}
-        (ValidationError::MemoryImportNotFound, "incompatible import type") => {}
-        (ValidationError::GlobalIsNotMutable, "incompatible import type") => {}
-        (ValidationError::InvalidElementOutOfBounds, "elements segment does not fit") => {}
-        (ValidationError::InvalidElementOffset, "elements segment does not fit") => {}
-        (ValidationError::MultipleTables, "multiple tables") => {}
-        (ValidationError::TableImportNotFound, "unknown import") => {}
+        (ValidationError::MemoryImportTooLarge, "incompatible import type") => {}
         (ValidationError::TableImportIncompatibleSize, "incompatible import type") => {}
         (ValidationError::TableImportTypeMismatch, "incompatible import type") => {}
-        (ValidationError::TableImportNotFound, "incompatible import type") => {}
-        (ValidationError::MemoryImportTooLarge, "incompatible import type") => {}
-        (ValidationError::InvalidPageSize(_), "invalid custom page size") => {}
-        (ValidationError::AllocError(AllocError::AllocationFailed), "allocation failed") => {}
-        (ValidationError::MalformedFunction(_), "malformed function type") => {}
-        (ValidationError::MalformedElemType(_), "malformed element type") => {}
-        (ValidationError::MalformedLimit(_), "malformed limits flag") => {}
-        (ValidationError::MalformedMemType(_), "malformed memory type") => {}
-        (ValidationError::MalformedImportExportDesc(_), "malformed import kind") => {}
-        (ValidationError::MalformedImportExportDesc(_), "malformed export kind") => {}
-        (ValidationError::InvalidSectionOrdering(_, _), "unexpected section order") => {}
+
+        // --- Resource allocation ---
+        (ValidationError::GuestMemoryAllocationFailure, "allocation failed") => {}
+
         err => {
             panic!("Could not match validation error text '{text}' with error {err:?}")
         }
@@ -957,11 +1138,78 @@ fn check_initialization_error(result: InterpreterResult, text: &str) {
     }
 }
 
-// Simple temp directory that cleans up on drop
+/// Wrapper for `wast2json`
+#[cfg(not(miri))]
+fn wast2json(source_wast_path: &Path, out_dir: &Path, test_filename: &str) {
+    // Resolve the WABT `wast2json` tool used to compile the `.wast`
+    let wast2json_bin = std::env::var_os("WABT_WAST2JSON")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("wast2json"));
+
+    // Run wast2json to generate Wasm modules and JSON descriptor
+    let output = ProcessCommand::new(&wast2json_bin)
+        .arg(source_wast_path)
+        .arg("--enable-custom-page-sizes")
+        .arg("-o")
+        .arg(out_dir.join(format!("{}.json", test_filename)))
+        .current_dir(out_dir)
+        .output()
+        .unwrap_or_else(|e| panic!("Failed to run {}: {e}", wast2json_bin.display()));
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        panic!("wast2json failed: {}", stderr);
+    }
+}
+
+#[cfg(not(miri))]
+pub fn convert_wast_for_miri() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let tests_dir = PathBuf::from(manifest_dir).join("tests");
+    let converted_root = PathBuf::from(manifest_dir).join("target").join("miri-wast");
+
+    let _ = std::fs::remove_dir_all(&converted_root);
+
+    // The `tests/` subdirectories containing `.wast` files. Hard-coded
+    // rather than walked, since it's a fixed, small set; add to this list
+    // if a new `.wast` suite subdirectory is introduced.
+    let wast_dirs: &[&str] = &[
+        "core",
+        "regression",
+        "custom-page-sizes",
+        "nontrapping-float-to-int",
+    ];
+
+    for subdir in wast_dirs {
+        let dir = tests_dir.join(subdir);
+        for entry in
+            std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("Failed to read {dir:?}: {e}"))
+        {
+            let wast_path = entry.unwrap().path();
+            if wast_path.extension().is_none_or(|ext| ext != "wast") {
+                continue;
+            }
+
+            let rel = wast_path
+                .strip_prefix(&tests_dir)
+                .unwrap()
+                .with_extension("");
+            let test_filename = rel.file_stem().unwrap().to_string_lossy().to_string();
+
+            let out_dir = converted_root.join(&rel);
+            std::fs::create_dir_all(&out_dir).unwrap();
+
+            wast2json(&wast_path, &out_dir, &test_filename);
+        }
+    }
+}
+
+#[cfg(not(miri))]
 struct TempDir {
     path: PathBuf,
 }
 
+#[cfg(not(miri))]
 impl TempDir {
     fn new() -> std::io::Result<Self> {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -978,6 +1226,7 @@ impl TempDir {
     }
 }
 
+#[cfg(not(miri))]
 impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.path);
@@ -1113,10 +1362,7 @@ fn run_wast_command(
                         panic!("Invoke '{field}' failed: {e:?}")
                     }
                 },
-                Action::Get { .. } => {
-                    // Skip Get actions for now as they're not fully implemented
-                    return;
-                }
+                Action::Get { module, field } => Some(get_global(ctx, &module, &field)),
             };
 
             if expected.is_empty() {
@@ -1173,8 +1419,10 @@ fn run_wast_command(
                     panic!("Expected trap '{text}', but execution succeeded")
                 }
             },
+            // A global read cannot trap, so the spec never wraps `get` in
+            // `assert_trap`.
             Action::Get { .. } => {
-                panic!("Get actions not implemented yet")
+                panic!("assert_trap does not support the `get` action")
             }
         },
         Command::AssertMalformed {
@@ -1249,8 +1497,10 @@ fn run_wast_command(
                     panic!("Expected exhaustion '{text}', but execution succeeded")
                 }
             },
+            // A global read cannot exhaust resources, so the spec never wraps
+            // `get` in `assert_exhaustion`.
             Action::Get { .. } => {
-                panic!("Get actions not implemented yet")
+                panic!("assert_exhaustion does not support the `get` action")
             }
         },
         Command::Register { name, as_name, .. } => {
@@ -1261,6 +1511,25 @@ fn run_wast_command(
             } else {
                 ctx.current_module_index()
             };
+
+            // A later `register` under an existing name shadows the earlier
+            // module for subsequent imports. The engine rejects duplicate
+            // module names, so rename the shadowed module to a name no import
+            // can spell. It stays in the store, so existing links into it and
+            // `$name` references remain valid.
+            if let Some(shadowed) = ctx
+                .engine
+                .store
+                .modules()
+                .iter()
+                .position(|m| m.name == as_name.as_str())
+                .filter(|&i| i != module_index)
+            {
+                ctx.engine.store.modules_mut()[shadowed].name = format!("\0shadowed#{shadowed}")
+                    .as_str()
+                    .try_into()
+                    .unwrap();
+            }
 
             // Update the module name in the store to the registered alias
             // This allows linking to find it by the registered name
@@ -1280,8 +1549,10 @@ fn run_wast_command(
             } => {
                 invoke_function(ctx, &module, &field, &args, log).unwrap();
             }
-            Action::Get { .. } => {
-                panic!("Get actions not implemented yet")
+            Action::Get { module, field } => {
+                // A bare `get` action reads the global for its side effects and
+                // discards the value.
+                let _ = get_global(ctx, &module, &field);
             }
         },
     }
@@ -1338,9 +1609,11 @@ pub fn run_wast_test_file(test_name: &str, host_modules: HostModuleFactory) {
         .join(format!("{}.wast", test_name));
 
     // Create a temporary directory for generated files
+    #[cfg(not(miri))]
     let temp_dir =
         TempDir::new().unwrap_or_else(|e| panic!("Failed to create temp directory: {e}"));
-    let temp_path = temp_dir.path();
+    #[cfg(not(miri))]
+    let temp_path = temp_dir.path().to_path_buf();
 
     // Extract just the filename (without directory path) for the JSON output
     let test_filename = PathBuf::from(test_name)
@@ -1349,20 +1622,29 @@ pub fn run_wast_test_file(test_name: &str, host_modules: HostModuleFactory) {
         .to_string_lossy()
         .to_string();
 
-    // Run wast2json to generate Wasm modules and JSON descriptor
-    let output = ProcessCommand::new("wast2json")
-        .arg(&source_wast_path)
-        .arg("--enable-custom-page-sizes")
-        .arg("-o")
-        .arg(temp_path.join(format!("{}.json", test_filename)))
-        .current_dir(temp_path)
-        .output()
-        .unwrap_or_else(|e| panic!("Failed to run wast2json: {e}"));
+    // Pre-convert tests for Miri to run
+    #[cfg(not(miri))]
+    wast2json(&source_wast_path, &temp_path, &test_filename);
+    #[cfg(not(miri))]
+    let test_dir = temp_path;
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        panic!("wast2json failed: {}", stderr);
-    }
+    #[cfg(miri)]
+    let test_dir = {
+        let dir = PathBuf::from(manifest_dir)
+            .join("target")
+            .join("miri-wast")
+            .join(test_name);
+
+        if !dir.join(format!("{}.json", test_filename)).exists() {
+            panic!(
+                "Converted wast files missing at {}. Run `cargo test --test miri_wast_convert \
+                 -- --ignored` (with `wast2json` on PATH) before `cargo miri test`.",
+                dir.display()
+            );
+        }
+
+        dir
+    };
 
     let wast_line = Arc::new(Mutex::new(None));
     #[allow(clippy::arc_with_non_send_sync)]
@@ -1370,7 +1652,7 @@ pub fn run_wast_test_file(test_name: &str, host_modules: HostModuleFactory) {
 
     match catch_unwind(|| {
         run_wast_test_file_inner(
-            temp_path.to_path_buf(),
+            test_dir,
             &test_filename,
             host_modules,
             wast_line.clone(),

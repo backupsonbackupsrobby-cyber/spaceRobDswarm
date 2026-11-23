@@ -10,7 +10,8 @@ pub trait WasmMemoryAllocator {
     /// Allocate a new memory region for linear memory
     fn allocate(&self, layout: Layout) -> Result<NonNull<u8>, AllocError>;
 
-    /// Reallocate a memory region moving data if needed
+    /// Reallocate, keeping the leading `old_layout.size()` bytes. On `Err` the
+    /// original allocation must be left valid and owned by the caller.
     fn reallocate(
         &self,
         ptr: NonNull<u8>,
@@ -31,6 +32,11 @@ impl<T: WasmMemoryAllocator> Rc<T> {
     }
 }
 
+/// A WebAssembly linear memory, shared between modules through `Rc`.
+///
+/// Writes take `&self`, so drop any slice from [`Memory::load`] or
+/// [`Memory::get_slice`] before writing or growing. [`Memory::as_shared_cells`]
+/// is the only view that survives writes.
 pub struct Memory {
     ptr: *mut u8,
     size: usize,
@@ -50,6 +56,7 @@ pub enum MemoryError {
     OutOfMemory,
     AllocationFailed,
     PageTooSmall,
+    HeapPoisoned,
 }
 
 impl From<AllocError> for MemoryError {
@@ -58,6 +65,7 @@ impl From<AllocError> for MemoryError {
             AllocError::AllocationFailed => MemoryError::AllocationFailed,
             AllocError::OutOfMemory => MemoryError::OutOfMemory,
             AllocError::PageTooSmall => MemoryError::PageTooSmall,
+            AllocError::HeapPoisoned => MemoryError::HeapPoisoned,
         }
     }
 }
@@ -90,17 +98,22 @@ impl Memory {
             return Err(AllocError::AllocationFailed);
         };
 
-        let ptr = allocator
-            .allocate(
-                Layout::from_size_align(size, ty.page_alignment())
-                    .map_err(|_| AllocError::AllocationFailed)?,
-            )?
-            .as_ptr();
+        let ptr = if size == 0 {
+            core::ptr::null_mut()
+        } else {
+            let ptr = allocator
+                .allocate(
+                    Layout::from_size_align(size, ty.page_alignment())
+                        .map_err(|_| AllocError::AllocationFailed)?,
+                )?
+                .as_ptr();
 
-        // Clear the pages
-        unsafe {
-            ptr.write_bytes(0, size);
-        }
+            // Clear the pages
+            unsafe {
+                ptr.write_bytes(0, size);
+            }
+            ptr
+        };
 
         Ok(Memory {
             ptr,
@@ -121,14 +134,8 @@ impl Memory {
         }
     }
 
-    /// Resolve a guest memory access `base + offset` to a byte address.
-    ///
-    /// The sum is evaluated in `u64` and narrowed back to `usize`, so it can
-    /// never wrap on 32-bit targets, where `usize` is 32-bit and `base + offset`
-    /// may exceed `u32::MAX`. An address that does not fit `usize` is rejected as
-    /// out of bounds rather than aliasing a valid cell. The resulting address is
-    /// still bounds-checked against the memory size by the individual load/store
-    /// operations.
+    /// `base + offset` as a byte address, without wrapping on 32-bit targets. Not
+    /// bounds-checked against the memory size.
     #[inline]
     pub fn effective_address(base: u32, offset: u32) -> Result<usize, MemoryError> {
         usize::try_from(base as u64 + offset as u64).map_err(|_| MemoryError::OutOfBounds)
@@ -145,7 +152,7 @@ impl Memory {
     pub fn store_u16(&self, addr: usize, i: u16) -> Result<(), MemoryError> {
         self.check_in_bounds(addr, 2)?;
         unsafe {
-            self.ptr.add(addr).cast::<u16>().write_unaligned(i);
+            self.ptr.add(addr).cast::<u16>().write_unaligned(i.to_le());
         }
         Ok(())
     }
@@ -153,7 +160,7 @@ impl Memory {
     pub fn store_u32(&self, addr: usize, i: u32) -> Result<(), MemoryError> {
         self.check_in_bounds(addr, 4)?;
         unsafe {
-            self.ptr.add(addr).cast::<u32>().write_unaligned(i);
+            self.ptr.add(addr).cast::<u32>().write_unaligned(i.to_le());
         }
         Ok(())
     }
@@ -161,13 +168,16 @@ impl Memory {
     pub fn store_u64(&self, addr: usize, i: u64) -> Result<(), MemoryError> {
         self.check_in_bounds(addr, 8)?;
         unsafe {
-            self.ptr.add(addr).cast::<u64>().write_unaligned(i);
+            self.ptr.add(addr).cast::<u64>().write_unaligned(i.to_le());
         }
         Ok(())
     }
 
     pub fn store(&self, addr: usize, data: &[u8]) -> Result<(), MemoryError> {
         self.check_in_bounds(addr, data.len())?;
+        if data.is_empty() {
+            return Ok(());
+        }
 
         unsafe {
             data.as_ptr().copy_to(self.ptr.add(addr), data.len());
@@ -182,62 +192,82 @@ impl Memory {
 
     pub fn load_u16(&self, addr: usize) -> Result<u16, MemoryError> {
         self.check_in_bounds(addr, 2)?;
-        unsafe { Ok(self.ptr.add(addr).cast::<u16>().read_unaligned()) }
+        unsafe {
+            Ok(u16::from_le(
+                self.ptr.add(addr).cast::<u16>().read_unaligned(),
+            ))
+        }
     }
 
     pub fn load_u32(&self, addr: usize) -> Result<u32, MemoryError> {
         self.check_in_bounds(addr, 4)?;
-        unsafe { Ok(self.ptr.add(addr).cast::<u32>().read_unaligned()) }
+        unsafe {
+            Ok(u32::from_le(
+                self.ptr.add(addr).cast::<u32>().read_unaligned(),
+            ))
+        }
     }
 
     pub fn load_u64(&self, addr: usize) -> Result<u64, MemoryError> {
         self.check_in_bounds(addr, 8)?;
-        unsafe { Ok(self.ptr.add(addr).cast::<u64>().read_unaligned()) }
+        unsafe {
+            Ok(u64::from_le(
+                self.ptr.add(addr).cast::<u64>().read_unaligned(),
+            ))
+        }
     }
 
     pub fn load(&self, addr: usize, len: usize) -> Result<&[u8], MemoryError> {
         self.check_in_bounds(addr, len)?;
+        if len == 0 {
+            return Ok(&[]);
+        }
         Ok(unsafe { core::slice::from_raw_parts(self.ptr.add(addr), len) })
     }
 
     /// Grow the memory by n pages
     /// If the memory growth succeeds, return the old number of pages
     pub fn grow(&mut self, n: u32) -> Result<u32, MemoryError> {
-        let Some(total_pages) = self.size().checked_add(n) else {
-            return Err(MemoryError::OutOfMemory);
-        };
+        let old_pages = self.size();
+        let total_pages = old_pages.checked_add(n).ok_or(MemoryError::OutOfMemory)?;
 
         if !self.ty.can_hold(total_pages) {
             return Err(MemoryError::OutOfMemory);
         }
 
-        let old_size = self.size;
-        let new_size = (self.ty.page_size() * n as usize) + self.size;
-        if let Some(allocator) = &self.allocator
-            && let Some(ptr) = NonNull::new(self.ptr)
-        {
-            self.ptr = allocator
-                .reallocate(
-                    ptr,
-                    Layout::from_size_align(old_size, self.ty.page_alignment())
-                        .map_err(|_| MemoryError::AllocationFailed)?,
-                    Layout::from_size_align(new_size, self.ty.page_alignment())
-                        .map_err(|_| MemoryError::AllocationFailed)?,
-                )?
-                .as_ptr();
-
-            // Clear the new memory
-            let new_ptr = unsafe { self.ptr.add(old_size) };
-            unsafe {
-                new_ptr.write_bytes(0, self.ty.page_size() * n as usize);
-            }
-
-            self.size = new_size;
-
-            Ok((old_size / self.ty.page_size()) as u32)
-        } else {
-            Err(MemoryError::OutOfMemory)
+        let allocator = self.allocator.as_ref().ok_or(MemoryError::OutOfMemory)?;
+        if n == 0 {
+            return Ok(old_pages);
         }
+
+        let old_size = self.size;
+        let new_size = usize::try_from(u64::from(total_pages) * self.ty.page_size() as u64)
+            .map_err(|_| MemoryError::OutOfMemory)?;
+        let new_layout = Layout::from_size_align(new_size, self.ty.page_alignment())
+            .map_err(|_| MemoryError::AllocationFailed)?;
+
+        let ptr = if old_size == 0 {
+            allocator.allocate(new_layout)?
+        } else {
+            allocator.reallocate(
+                NonNull::new(self.ptr).ok_or(MemoryError::OutOfMemory)?,
+                Layout::from_size_align(old_size, self.ty.page_alignment())
+                    .map_err(|_| MemoryError::AllocationFailed)?,
+                new_layout,
+            )?
+        };
+
+        // Clear the new memory before committing the larger size.
+        unsafe {
+            ptr.as_ptr()
+                .add(old_size)
+                .write_bytes(0, new_size - old_size);
+        }
+
+        self.ptr = ptr.as_ptr();
+        self.size = new_size;
+
+        Ok(old_pages)
     }
 
     pub fn mem_type(&self) -> MemType {
@@ -248,23 +278,45 @@ impl Memory {
         (self.size / self.ty.page_size()) as u32
     }
 
+    /// Returns whether this is the absent-memory sentinel created by [`Memory::zero`].
     pub fn is_zero(&self) -> bool {
-        self.ptr.is_null()
+        self.ptr.is_null() && self.allocator.is_none()
     }
 
     pub fn get_slice(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.ptr, self.size) }
+        if self.ptr.is_null() {
+            &[]
+        } else {
+            unsafe { slice::from_raw_parts(self.ptr, self.size) }
+        }
+    }
+
+    /// Linear memory as cells, valid across writes but not across
+    /// [`Memory::grow`].
+    pub fn as_shared_cells(&self) -> &[core::cell::UnsafeCell<u8>] {
+        if self.ptr.is_null() {
+            &[]
+        } else {
+            unsafe {
+                core::slice::from_raw_parts(
+                    self.ptr as *const core::cell::UnsafeCell<u8>,
+                    self.size,
+                )
+            }
+        }
     }
 }
 
 impl Drop for Memory {
     fn drop(&mut self) {
         if !self.ptr.is_null() {
-            let allocator = self.allocator.take().unwrap();
-            allocator.deallocate(
-                NonNull::new(self.ptr).unwrap(),
-                Layout::from_size_align(self.size, self.ty.page_alignment()).unwrap(),
-            )
+            // A non-null `ptr` is only ever set alongside an allocator, and
+            // its layout was validated when it was (re)allocated.
+            if let Some(allocator) = self.allocator.take() {
+                allocator.deallocate(unsafe { NonNull::new_unchecked(self.ptr) }, unsafe {
+                    Layout::from_size_align_unchecked(self.size, self.ty.page_alignment())
+                })
+            }
         }
     }
 }
@@ -280,6 +332,7 @@ mod tests {
     struct TestAllocator;
     impl WasmMemoryAllocator for TestAllocator {
         fn allocate(&self, layout: Layout) -> Result<NonNull<u8>, AllocError> {
+            assert_ne!(layout.size(), 0);
             unsafe { NonNull::new(std::alloc::alloc(layout)).ok_or(AllocError::AllocationFailed) }
         }
 
@@ -289,6 +342,8 @@ mod tests {
             old_layout: Layout,
             layout: Layout,
         ) -> Result<NonNull<u8>, AllocError> {
+            assert_ne!(old_layout.size(), 0);
+            assert_ne!(layout.size(), 0);
             unsafe {
                 let new_ptr = std::alloc::realloc(ptr.as_ptr(), old_layout, layout.size());
                 NonNull::new(new_ptr).ok_or(AllocError::AllocationFailed)
@@ -296,6 +351,7 @@ mod tests {
         }
 
         fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+            assert_ne!(layout.size(), 0);
             unsafe { std::alloc::dealloc(ptr.as_ptr(), layout) }
         }
     }
@@ -328,6 +384,64 @@ mod tests {
         // The freshly allocated pages are zeroed.
         assert!(mem.get_slice().iter().all(|&b| b == 0));
         assert_eq!(mem.get_slice().len(), 2 * MemPageSize::_65536.size());
+    }
+
+    #[test]
+    fn zero_page_memory_allocates_lazily() {
+        let mut mem = Memory::new(mem_type(0, None), allocator()).unwrap();
+
+        assert!(!mem.is_zero());
+        assert_eq!(mem.size(), 0);
+        assert!(mem.get_slice().is_empty());
+        assert_eq!(mem.load(0, 0), Ok(&[][..]));
+        assert_eq!(mem.store(0, &[]), Ok(()));
+        assert_eq!(mem.load(1, 0), Err(MemoryError::OutOfBounds));
+        assert_eq!(mem.store(1, &[]), Err(MemoryError::OutOfBounds));
+
+        assert_eq!(mem.grow(0), Ok(0));
+        assert_eq!(mem.grow(1), Ok(0));
+        assert_eq!(mem.size(), 1);
+        assert_eq!(mem.grow(0), Ok(1));
+        assert_eq!(mem.get_slice().len(), MemPageSize::_65536.size());
+        assert!(mem.get_slice().iter().all(|&b| b == 0));
+        assert_eq!(mem.load(0, 1), Ok(&[0][..]));
+        assert_eq!(mem.store(0, &[0xA5]), Ok(()));
+        assert_eq!(mem.load(0, 1), Ok(&[0xA5][..]));
+    }
+
+    #[test]
+    fn stores_are_little_endian() {
+        // Wasm mandates little-endian memory regardless of host byte order.
+        // Assert the actual byte layout, which round-trip tests cannot catch.
+        let mem = Memory::new(mem_type(1, None), allocator()).unwrap();
+
+        mem.store_u16(0, 0x1122).unwrap();
+        assert_eq!(mem.load(0, 2).unwrap(), &[0x22, 0x11][..]);
+
+        mem.store_u32(8, 0x1122_3344).unwrap();
+        assert_eq!(mem.load(8, 4).unwrap(), &[0x44, 0x33, 0x22, 0x11][..]);
+
+        mem.store_u64(16, 0x1122_3344_5566_7788).unwrap();
+        assert_eq!(
+            mem.load(16, 8).unwrap(),
+            &[0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11][..]
+        );
+    }
+
+    #[test]
+    fn loads_are_little_endian() {
+        // A little-endian byte pattern must decode to the expected value.
+        let mem = Memory::new(mem_type(1, None), allocator()).unwrap();
+
+        mem.store(0, &[0x22, 0x11]).unwrap();
+        assert_eq!(mem.load_u16(0).unwrap(), 0x1122);
+
+        mem.store(8, &[0x44, 0x33, 0x22, 0x11]).unwrap();
+        assert_eq!(mem.load_u32(8).unwrap(), 0x1122_3344);
+
+        mem.store(16, &[0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11])
+            .unwrap();
+        assert_eq!(mem.load_u64(16).unwrap(), 0x1122_3344_5566_7788);
     }
 
     #[test]
@@ -365,8 +479,9 @@ mod tests {
 
     #[test]
     fn grow_zero_memory_fails() {
-        // A zero (unallocated) memory has no backing allocator to reallocate.
+        // The absent-memory sentinel has no backing allocator.
         let mut mem = Memory::zero();
+        assert_eq!(mem.grow(0), Err(MemoryError::OutOfMemory));
         assert_eq!(mem.grow(1), Err(MemoryError::OutOfMemory));
     }
 
@@ -386,6 +501,31 @@ mod tests {
     }
 
     #[test]
+    fn as_shared_cells_aliases_and_mutates() {
+        let mem = Memory::new(mem_type(1, None), allocator()).unwrap();
+
+        // The cell view covers exactly the linear memory bytes.
+        let cells = mem.as_shared_cells();
+        assert_eq!(cells.len(), mem.get_slice().len());
+
+        // A store is observable through the cell view...
+        mem.store_u8(3, 0x5A).unwrap();
+        assert_eq!(unsafe { *cells[3].get() }, 0x5A);
+
+        // ...and a write through a cell is observable through a load, which is
+        // the shared-but-mutable access wiggle relies on.
+        unsafe {
+            *cells[7].get() = 0xC3;
+        }
+        assert_eq!(mem.load_u8(7).unwrap(), 0xC3);
+    }
+
+    #[test]
+    fn as_shared_cells_zero_memory_is_empty() {
+        assert!(Memory::zero().as_shared_cells().is_empty());
+    }
+
+    #[test]
     fn memory_error_from_alloc_error() {
         assert_eq!(
             MemoryError::from(AllocError::AllocationFailed),
@@ -398,6 +538,10 @@ mod tests {
         assert_eq!(
             MemoryError::from(AllocError::PageTooSmall),
             MemoryError::PageTooSmall
+        );
+        assert_eq!(
+            MemoryError::from(AllocError::HeapPoisoned),
+            MemoryError::HeapPoisoned
         );
     }
 }

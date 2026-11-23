@@ -6,18 +6,33 @@
 #ifndef SPACEWASM_H
 #define SPACEWASM_H
 
-#include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
+#include <stddef.h>
+
+#if !defined(SPACEWASM_NORETURN) && defined(__has_c_attribute)
+#  if __has_c_attribute(noreturn)
+#    define SPACEWASM_NORETURN [[noreturn]] /* Standard C23 attribute */
+#  endif
+#endif
+
+#if !defined(SPACEWASM_NORETURN)
+#  if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+#    define SPACEWASM_NORETURN _Noreturn /* Standard C11 keyword */
+#  elif defined(__GNUC__) || defined(__clang__)
+#    define SPACEWASM_NORETURN __attribute__((noreturn)) /* GCC / Clang extension */
+#  elif defined(_MSC_VER)
+#    define SPACEWASM_NORETURN __declspec(noreturn) /* MSVC extension */
+#  else
+#    define SPACEWASM_NORETURN /* Fallback: do nothing on unsupported compilers */
+#  endif
+#endif
+
+#define CustomSection_MAX_NAME_LENGTH 32
 
 /*
  Operation status returned by most `spacewasm_*` functions.
  [`spacewasm_status_t::SPACEWASM_OK`] (0) means success.
-
- Variants are glob-re-exported below so they can be named unqualified within
- this crate (e.g. `status::SPACEWASM_OK`).
  */
 enum spacewasm_status_t
 #if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
@@ -33,15 +48,103 @@ enum spacewasm_status_t
     SPACEWASM_ERR_CAPACITY = 6,
     SPACEWASM_ERR_NOT_FOUND = 7,
     SPACEWASM_ERR_WRONG_STATE = 8,
+    SPACEWASM_ERR_GUEST_MEMORY_ALLOC_FAILED = 15,
     SPACEWASM_ERR_ALLOC_FAILED = 16,
     SPACEWASM_ERR_OUT_OF_MEMORY = 17,
     SPACEWASM_ERR_PAGE_TOO_SMALL = 18,
+    SPACEWASM_ERR_HEAP_POISONED = 19,
     SPACEWASM_ERR_MEM_OUT_OF_BOUNDS = 32,
     SPACEWASM_ERR_PARAM_LEN_MISMATCH = 48,
     SPACEWASM_ERR_PARAM_TYPE_MISMATCH = 49,
     SPACEWASM_ERR_STACK_OVERFLOW = 50,
-    SPACEWASM_ERR_PARSE = 64,
-    SPACEWASM_ERR_STREAM = 80,
+    SPACEWASM_ERR_EOF = 64,
+    SPACEWASM_ERR_MALFORMED_INTEGER = 65,
+    SPACEWASM_ERR_I33_IS_NEGATIVE = 66,
+    SPACEWASM_ERR_MALFORMED_MAGIC = 67,
+    SPACEWASM_ERR_MALFORMED_VERSION = 68,
+    SPACEWASM_ERR_MALFORMED_UTF8 = 69,
+    SPACEWASM_ERR_DUPLICATE_MODULE_NAME = 70,
+    SPACEWASM_ERR_DUPLICATE_EXPORT_NAME = 71,
+    SPACEWASM_ERR_MALFORMED_SECTION_ID = 72,
+    SPACEWASM_ERR_MALFORMED_VALUE_TYPE = 73,
+    SPACEWASM_ERR_MALFORMED_FUNCTION = 74,
+    SPACEWASM_ERR_MALFORMED_LIMIT = 75,
+    SPACEWASM_ERR_MALFORMED_ELEM_TYPE = 76,
+    SPACEWASM_ERR_MALFORMED_SECTION_SIZE = 77,
+    SPACEWASM_ERR_EXPECTED_CONST_OR_VAR = 78,
+    SPACEWASM_ERR_MALFORMED_IMPORT_EXPORT_DESC = 79,
+    SPACEWASM_ERR_MALFORMED_MEM_TYPE = 80,
+    SPACEWASM_ERR_INVALID_PAGE_SIZE = 81,
+    SPACEWASM_ERR_INVALID_SECTION_ORDERING = 82,
+    SPACEWASM_ERR_DUPLICATE_SECTION = 83,
+    SPACEWASM_ERR_INVALID_MAX_LIMIT = 84,
+    SPACEWASM_ERR_EXPECTED_TERMINAL = 85,
+    SPACEWASM_ERR_INVALID_OPCODE = 86,
+    SPACEWASM_ERR_MALFORMED_CODE_SIZE = 87,
+    SPACEWASM_ERR_INVALID_CODE_SECTION_FUNCTION_COUNT = 88,
+    SPACEWASM_ERR_VEC_TOO_LONG = 89,
+    SPACEWASM_ERR_IDX_TOO_LARGE = 90,
+    SPACEWASM_ERR_MODULE_IDX_TOO_LARGE = 91,
+    SPACEWASM_ERR_MEMORY_TOO_LARGE = 92,
+    SPACEWASM_ERR_MEMORY_IMPORT_TOO_LARGE = 93,
+    SPACEWASM_ERR_MEM_ALIGN_TOO_LARGE = 94,
+    SPACEWASM_ERR_TABLE_TOO_LARGE = 95,
+    SPACEWASM_ERR_CONTROL_FLOW_TOO_DEEP = 96,
+    SPACEWASM_ERR_STACK_UNDERFLOW = 97,
+    SPACEWASM_ERR_STACK_TOO_LARGE = 98,
+    SPACEWASM_ERR_LABEL_STACK_JUMP_TOO_DEEP = 99,
+    SPACEWASM_ERR_LABEL_JUMP_TOO_LARGE = 100,
+    SPACEWASM_ERR_TYPE_MISMATCH = 101,
+    SPACEWASM_ERR_BLOCK_RESULT_TYPE_MISMATCH = 102,
+    SPACEWASM_ERR_FUNCTION_RESULT_TYPE_MISMATCH = 103,
+    SPACEWASM_ERR_BR_TABLE_RESULT_TYPE_MISMATCH = 104,
+    SPACEWASM_ERR_ILLEGAL_MEMORY_GROW = 112,
+    SPACEWASM_ERR_INVALID_ELEMENT_OFFSET = 113,
+    SPACEWASM_ERR_INVALID_ELEMENT_OUT_OF_BOUNDS = 114,
+    SPACEWASM_ERR_INVALID_TABLE_INDEX = 115,
+    SPACEWASM_ERR_TABLE_NOT_DEFINED = 116,
+    SPACEWASM_ERR_INVALID_ELEMENT_COUNT = 117,
+    SPACEWASM_ERR_INVALID_MEM_INDEX = 118,
+    SPACEWASM_ERR_MEMORY_NOT_DEFINED = 119,
+    SPACEWASM_ERR_INVALID_MEM_OFFSET_TYPE = 120,
+    SPACEWASM_ERR_INVALID_MEM_OFFSET = 122,
+    SPACEWASM_ERR_MULTIPLE_MEMORIES = 123,
+    SPACEWASM_ERR_MULTIPLE_TABLES = 124,
+    SPACEWASM_ERR_INVALID_LABEL_INDEX = 128,
+    SPACEWASM_ERR_INVALID_ELSE_BLOCK = 129,
+    SPACEWASM_ERR_INVALID_END_BLOCK = 130,
+    SPACEWASM_ERR_INSTRUCTION_OUTSIDE_OF_FUNCTION = 131,
+    SPACEWASM_ERR_LOCAL_IDX_OUT_OF_RANGE = 132,
+    SPACEWASM_ERR_FUNCTION_IDX_OUT_OF_RANGE = 133,
+    SPACEWASM_ERR_TYPE_IDX_OUT_OF_RANGE = 134,
+    SPACEWASM_ERR_FUNCTION_TEXT_OUT_OF_RANGE = 135,
+    SPACEWASM_ERR_GLOBAL_IDX_OUT_OF_RANGE = 136,
+    SPACEWASM_ERR_FUNCTION_IMPORT_NOT_FOUND = 144,
+    SPACEWASM_ERR_GLOBAL_IMPORT_NOT_FOUND = 145,
+    SPACEWASM_ERR_MEMORY_IMPORT_NOT_FOUND = 146,
+    SPACEWASM_ERR_TABLE_IMPORT_NOT_FOUND = 147,
+    SPACEWASM_ERR_FUNCTION_IMPORT_OUT_OF_RANGE = 148,
+    SPACEWASM_ERR_FUNCTION_IMPORT_TYPE_MISMATCH = 149,
+    SPACEWASM_ERR_GLOBAL_NOT_MUTABLE = 150,
+    SPACEWASM_ERR_GLOBAL_IMPORT_TYPE_MISMATCH = 151,
+    SPACEWASM_ERR_MEMORY_IMPORT_TYPE_MISMATCH = 152,
+    SPACEWASM_ERR_TABLE_IMPORT_TYPE_MISMATCH = 153,
+    SPACEWASM_ERR_TABLE_IMPORT_INCOMPATIBLE_SIZE = 154,
+    SPACEWASM_ERR_TABLE_REF_NOT_UNIQUE = 155,
+    SPACEWASM_ERR_FUNCTION_PARAMETERS_TOO_LARGE = 160,
+    SPACEWASM_ERR_FUNCTION_RETURNS_TOO_LARGE = 161,
+    SPACEWASM_ERR_TOO_MANY_LOCALS = 162,
+    SPACEWASM_ERR_INVALID_CONST_INSTRUCTION = 163,
+    SPACEWASM_ERR_GLOBAL_TYPE_MISMATCH = 164,
+    SPACEWASM_ERR_ALIGNMENT_LARGER_THAN_TYPE = 165,
+    SPACEWASM_ERR_INVALID_START_FUNCTION_SIGNATURE = 166,
+    SPACEWASM_ERR_INVALID_HOST_START_FUNCTION = 167,
+    SPACEWASM_ERR_CONST_ALREADY_HAS_VALUE = 176,
+    SPACEWASM_ERR_CONST_NO_VALUE = 177,
+    SPACEWASM_ERR_CONST_INVALID_GLOBAL = 178,
+    SPACEWASM_ERR_POSSIBLE_BACKPATCH_CYCLE = 192,
+    SPACEWASM_ERR_PAGE_FAULT = 193,
+    SPACEWASM_ERR_READER_ERROR = 194,
 };
 #ifndef __cplusplus
 #if __STDC_VERSION__ >= 202311L
@@ -60,17 +163,22 @@ enum spacewasm_hostcall_result_t
 #endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
     /*
+     Continue, do not return a value
+     */
+    SPACEWASM_CONTINUE_NONE = 0,
+    /*
      Continue; populate `out_result` if the function has a result type.
      */
-    SPACEWASM_CONTINUE = 0,
+    SPACEWASM_CONTINUE_SOME = 1,
     /*
      Trap the interpreter.
      */
-    SPACEWASM_TRAP = 1,
+    SPACEWASM_TRAP = 2,
     /*
-     Pause the interpreter (cooperative yield).
+     Pause the interpreter. [`spacewasm_run`](crate::capi::spacewasm_run)
+     returns `SPACEWASM_RUN_PAUSE` until resumed.
      */
-    SPACEWASM_PAUSE = 2,
+    SPACEWASM_PAUSE = 3,
 };
 #ifndef __cplusplus
 #if __STDC_VERSION__ >= 202311L
@@ -119,7 +227,7 @@ enum spacewasm_read_result_t
      */
     SPACEWASM_READ_EOF = 1,
     /*
-     An I/O error occurred; loading fails with `SPACEWASM_ERR_STREAM`.
+     An I/O error occurred; loading fails with `SPACEWASM_ERR_READER_ERROR`.
      */
     SPACEWASM_READ_ERROR = 2,
 };
@@ -225,6 +333,10 @@ enum spacewasm_trap_t
      Attempted to convert NaN to an integer.
      */
     SPACEWASM_TRAP_BAD_CONVERSION_TO_INTEGER = 14,
+    /*
+     The IR decoder reached an opcode or immediate it cannot interpret.
+     */
+    SPACEWASM_TRAP_MALFORMED_IR = 15,
 };
 #ifndef __cplusplus
 #if __STDC_VERSION__ >= 202311L
@@ -235,18 +347,23 @@ typedef int32_t spacewasm_trap_t;
 #endif // __cplusplus
 
 /*
- Handle holding the SpaceWasm engine and compiled IR code.
- This handle is used for holding and executing the SpaceWasm interpreter.
+ Adapts C allocation callbacks to `Rc<dyn WasmMemoryAllocator>`. Freed once
+ the last module using it is dropped.
+ */
+typedef struct spacewasm_allocator_t spacewasm_allocator_t;
+
+/*
+ An interpreter engine and its compiled code.
  */
 typedef struct spacewasm_t spacewasm_t;
 
 typedef struct spacewasm_host_module_t spacewasm_host_module_t;
 
 /*
- Opaque guest linear-memory allocator handle (`spacewasm_allocator_t`), owning
- a reference-counted [`WasmMemoryAllocator`] built from C callbacks.
+ Opaque handle passed to C host callbacks, wrapping a borrowed core
+ [`Engine`]. Valid only for the duration of the call.
  */
-typedef struct spacewasm_allocator_t spacewasm_allocator_t;
+typedef struct spacewasm_caller_t spacewasm_caller_t;
 
 /*
  Allocate `size` bytes aligned to `align`. Return NULL on failure.
@@ -270,17 +387,9 @@ typedef void (*spacewasm_dealloc_fn_t)(void *userdata, uint8_t *ptr, size_t size
 
 typedef struct spacewasm_host_t {
     struct spacewasm_host_module_t *ptr;
-    uint32_t capacity;
-    uint32_t len;
+    size_t capacity;
+    size_t len;
 } spacewasm_host_t;
-
-/*
- Opaque handle passed to C host callbacks, wrapping a borrowed core
- [`Engine`]. Valid only for the duration of the call.
- */
-typedef struct spacewasm_caller_t {
-
-} spacewasm_caller_t;
 
 /*
  FFI-safe union of the four WebAssembly 1.0 value payloads.
@@ -311,36 +420,59 @@ typedef spacewasm_hostcall_result_t (*spacewasm_host_fn_t)(struct spacewasm_call
                                                            struct spacewasm_value_t *out_result);
 
 /*
- C callback that supplies the next chunk of a Wasm module. The callback owns
- the buffer: it sets `*out_buf` to point at the next chunk and `*out_len` to
- its length (0 == EOF). The chunk must stay valid until the next call to the
- callback (or until loading completes).
+ Supplies the next chunk of a module: set `*out_buf` and `*out_len` (0 at
+ EOF). The chunk must stay valid until the next call.
  */
 typedef spacewasm_read_result_t (*spacewasm_read_fn_t)(void *userdata,
                                                        const uint8_t **out_buf,
                                                        size_t *out_len);
 
 /*
- FFI-safe mirror of [`CompilerOptions`], controlling how guest
- modules loaded onto a store are compiled. Passed to [`spacewasm_new`].
+ Opaque storage for one validator control frame.
+ */
+typedef struct spacewasm_control_frame_t {
+    uint32_t _opaque[3];
+} spacewasm_control_frame_t;
+
+/*
+ Opaque storage for one validator operand.
+ */
+typedef struct spacewasm_operand_t {
+    uint8_t _opaque[2];
+} spacewasm_operand_t;
+
+/*
+ Validator scratch storage, borrowed by [`spacewasm_load_module`] for the
+ call. Need not be initialized.
+
+ `control_frames_len` bounds block nesting and `operands_len` the operand
+ stack, per function; exceeding either fails with
+ [`spacewasm_status_t::SPACEWASM_ERR_OUT_OF_MEMORY`]. A pointer may be null
+ only if its length is 0.
+ */
+typedef struct spacewasm_decoder_stack_t {
+    struct spacewasm_control_frame_t *control_frames;
+    size_t control_frames_len;
+    struct spacewasm_operand_t *operands;
+    size_t operands_len;
+} spacewasm_decoder_stack_t;
+
+/*
+ Compiler options for guest modules. Passed to [`spacewasm_new`].
  */
 typedef struct spacewasm_compiler_options_t {
     /*
-     Allow compiling `memory.grow` instructions. When `false`, a module using
-     `memory.grow` is rejected at load time.
+     Allow `memory.grow`; when `false`, modules using it are rejected.
      */
     bool allow_memory_grow;
     /*
-     Maximum number of iterations to resolve during a control-flow backpatch.
-     Bounds compile time on pathological modules at the cost of rejecting some
-     valid programs. Set to 0 for unlimited iterations.
+     Bound on control-flow backpatch iterations; 0 for unlimited.
      */
     uint32_t max_backpatch_iterations;
     /*
-     Maximum number of compiled code pages allowed across all modules loaded
-     onto the store.
+     Maximum compiled code pages across all modules on the engine.
      */
-    uint32_t max_code_pages;
+    size_t max_code_pages;
 } spacewasm_compiler_options_t;
 
 /*
@@ -356,11 +488,6 @@ typedef void (*spacewasm_global_dealloc_fn_t)(void *userdata,
                                               size_t size,
                                               size_t align);
 
-typedef struct spacewasm_memory_statistics_t {
-    int32_t total_bytes;
-    int32_t pad_bytes;
-} spacewasm_memory_statistics_t;
-
 
 
 #ifdef __cplusplus
@@ -368,16 +495,8 @@ extern "C" {
 #endif // __cplusplus
 
 /*
- Global allocator statistics. Independent of the interpreter configuration,
- so it takes no const-generic parameters.
- */
-spacewasm_memory_statistics_t spacewasm_memory_statistics(void);
-
-/*
- Create a guest linear-memory allocator from three C callbacks, returning an
- opaque handle (or null if any callback is null or allocation fails). The
- handle is passed to [`spacewasm_load_module`] and must be released with
- [`spacewasm_allocator_destroy`]. `userdata` is passed to every callback.
+ Create a guest linear-memory allocator from C callbacks, each passed
+ `userdata`. Returns null if a callback is null or allocation fails.
  */
 struct spacewasm_allocator_t *spacewasm_allocator_new(spacewasm_alloc_fn_t alloc,
                                                       spacewasm_realloc_fn_t realloc,
@@ -385,44 +504,42 @@ struct spacewasm_allocator_t *spacewasm_allocator_new(spacewasm_alloc_fn_t alloc
                                                       void *userdata);
 
 /*
- Destroy an allocator handle. No-op on null. Any loaded module keeps its own
- reference to the underlying allocator, so destroying the handle after loading
- is safe.
+ Destroy an allocator handle. No-op on null. Modules already loaded keep
+ their own reference.
 
  # Safety
- `allocator` must be a live handle from [`spacewasm_allocator_new`], not
- already destroyed.
+ `allocator` must be null or a live handle.
  */
 void spacewasm_allocator_destroy(struct spacewasm_allocator_t *allocator);
 
 /*
- Create a new host module vector of max_host_module size
+ Create a host module vector with room for `len` modules.
 
  # Safety
- `host` must be live
+ `dest` must be null or valid for writes.
  */
-spacewasm_status_t spacewasm_host_new(uint32_t len, struct spacewasm_host_t *dest);
+spacewasm_status_t spacewasm_host_new(size_t len, struct spacewasm_host_t *dest);
 
 /*
- Add a host module named `name` sized for `max_functions` functions and
- `max_globals` globals, writing its index to `out_idx` (if non-null).
+ Add a host module named `name` with room for `max_functions` functions and
+ `max_globals` globals. Writes its index to `out_idx` if non-null.
 
  # Safety
- `host` must be live; all C strings valid and NUL-terminated.
+ `host` must be live; strings valid and NUL-terminated.
  */
 spacewasm_status_t spacewasm_add_host_module(struct spacewasm_host_t *host,
                                              const char *name,
-                                             uint32_t max_functions,
-                                             uint32_t max_globals,
+                                             size_t max_functions,
+                                             size_t max_globals,
                                              uint32_t *out_idx);
 
 /*
- Register a host function `name` in host module `module_idx`, with parameter
- and return signatures given by `params_sig`/`returns_sig` and implemented by
- callback `f` (passed `userdata` on each call).
+ Add host function `name` to host module `module_idx`, implemented by `f`
+ (passed `userdata`). Signatures use `i` (i32), `I` (i64), `f` (f32),
+ `d` (f64).
 
  # Safety
- `host` must be live; all C strings valid and NUL-terminated.
+ `host` must be live; strings valid and NUL-terminated.
  */
 spacewasm_status_t spacewasm_add_host_function(struct spacewasm_host_t *host,
                                                uint32_t module_idx,
@@ -433,57 +550,53 @@ spacewasm_status_t spacewasm_add_host_function(struct spacewasm_host_t *host,
                                                void *userdata);
 
 /*
- Load a guest module named `name` onto an existing engine by streaming its
- bytes through the `read` callback. The callback owns the buffer backing each
- chunk (see [`spacewasm_read_fn_t`]). This does not run the module's start
- function; use [`spacewasm_invoke_start`] for that. `allocator` supplies the
- guest linear memory (see [`spacewasm_allocator_new`]). Writes the new module's
- index to `out_module_idx` (if non-null). May be called repeatedly to load
- several modules onto the same engine.
+ Load a guest module named `name`, streamed through `read`. `allocator`
+ backs its linear memory and `decoder_stack` is the validator's scratch
+ storage. Writes the module index to `out_module_idx` if non-null. Does not
+ run the start function (see [`spacewasm_module_start`]).
+
+ Any failure leaves the engine unusable: destroy it and create a new one.
 
  # Safety
- `engine` and `allocator` must be live handles; `read` a valid callback;
- `out_module_idx` null or valid.
+ `engine` and `allocator` must be live; `decoder_stack` must describe
+ writable, unaliased arrays; `out_module_idx` null or valid.
  */
 spacewasm_status_t spacewasm_load_module(struct spacewasm_t *engine,
                                          const char *name,
                                          spacewasm_read_fn_t read,
                                          void *read_userdata,
                                          struct spacewasm_allocator_t *allocator,
+                                         struct spacewasm_decoder_stack_t decoder_stack,
                                          uint32_t *out_module_idx);
 
 /*
- Consume the host module vector `host` and finish it into an engine handle,
- written to `out_engine`. The engine is sized with a `stack_size`-byte guest
- stack, room for `max_modules` guest modules (<= 256), and compiles guest
- modules according to `options` (code-page budget, `memory.grow` support,
- backpatch bound). No guest module is loaded yet; use
- [`spacewasm_load_module`] to load one or more.
+ Create an engine from `host` (may be null), with a `stack_size`-word stack
+ and room for `max_modules` (<= 256) guest modules.
 
- `host` may be null to create an engine with no host modules. The host vector
- is always consumed (its handle must not be used or destroyed afterward),
- whether the engine is created successfully.
+ `host` is consumed, except on [`spacewasm_status_t::SPACEWASM_ERR_NULL_ARG`]
+ and [`spacewasm_status_t::SPACEWASM_ERR_VEC_TOO_LONG`], when the caller still
+ owns it.
 
  # Safety
- `host` must be null or a live handle from [`spacewasm_host_new`], not already
- consumed/destroyed; `out_engine` must be a valid pointer.
+ `host` null or a live, unconsumed handle; `out_engine` valid.
  */
 spacewasm_status_t spacewasm_new(struct spacewasm_host_t *host,
                                  size_t stack_size,
-                                 uint32_t max_modules,
+                                 size_t max_modules,
                                  struct spacewasm_compiler_options_t options,
                                  struct spacewasm_t **out_engine);
 
 /*
- Destroy a host vector that was never consumed into an engine. No-op on null.
+ Destroy a host vector that was not consumed by [`spacewasm_new`]. No-op on
+ null.
 
  # Safety
- `host` must be null or a live unconsumed handle from [`spacewasm_host_new`].
+ `host` must be null or a live, unconsumed handle.
  */
 void spacewasm_host_destroy(struct spacewasm_host_t *host);
 
 /*
- Find a module with a given name in the engine.
+ Find the module named `name`.
 
  # Safety
  `engine` must be live; `name` valid; `out_index` valid.
@@ -493,8 +606,7 @@ spacewasm_status_t spacewasm_find_module(struct spacewasm_t *engine,
                                          uint32_t *out_index);
 
 /*
- Look up the exported function named `name` in module `module_idx` and write
- its index to `out_index`.
+ Find the function exported as `name` from module `module_idx`.
 
  # Safety
  `engine` must be live; `name` valid; `out_index` valid.
@@ -505,23 +617,71 @@ spacewasm_status_t spacewasm_find_export_func(struct spacewasm_t *engine,
                                               uint32_t *out_index);
 
 /*
- Invoke the start function of a module.
-
- If there is no start function, return [`spacewasm_run_status_t::SPACEWASM_RUN_FINISHED`]
- If there is a start function, return [`spacewasm_run_status_t::SPACEWASM_RUN_OUT_OF_FUEL`]
-
- If there are any bad arguments or the start function is a host function that traps,
- return [`spacewasm_run_status_t::SPACEWASM_RUN_TRAP`]
+ Find the start function of module `module_idx`, ready for
+ [`spacewasm_invoke`]. `out_module_idx` may differ from `module_idx` if the
+ start function is imported. Returns
+ [`spacewasm_status_t::SPACEWASM_ERR_NOT_FOUND`] if there is none.
 
  # Safety
- `engine` must be live
+ `engine` must be live; outputs valid.
  */
-spacewasm_run_status_t spacewasm_invoke_start(struct spacewasm_t *engine, uint32_t module_idx);
+spacewasm_status_t spacewasm_module_start(struct spacewasm_t *engine,
+                                          uint32_t module_idx,
+                                          uint32_t *out_module_idx,
+                                          uint32_t *out_func_index);
 
 /*
- Set up a call to exported function `func_index` of module `module_idx` with
- the `n` arguments in `params`. Does not run the function; drive execution
- with [`spacewasm_run`].
+ Check that function `func_index` of module `module_idx` has the signature
+ `params_sig` -> `returns_sig` (same alphabet as
+ [`spacewasm_add_host_function`]).
+
+ # Safety
+ `engine` must be live; strings valid and NUL-terminated.
+ */
+spacewasm_status_t spacewasm_check_func_signature(struct spacewasm_t *engine,
+                                                  uint32_t module_idx,
+                                                  uint32_t func_index,
+                                                  const char *params_sig,
+                                                  const char *returns_sig);
+
+/*
+ Find the global exported as `name` from module `module_idx`. Only globals
+ the module defines itself are found, not re-exported imports.
+
+ # Safety
+ `engine` must be live; `name` valid; `out_index` valid.
+ */
+spacewasm_status_t spacewasm_find_global(struct spacewasm_t *engine,
+                                         uint32_t module_idx,
+                                         const char *name,
+                                         uint32_t *out_index);
+
+/*
+ Read global `global_index` of module `module_idx` into `out`.
+
+ # Safety
+ `engine` must be live; `out` valid.
+ */
+spacewasm_status_t spacewasm_get_global(struct spacewasm_t *engine,
+                                        uint32_t module_idx,
+                                        uint32_t global_index,
+                                        struct spacewasm_value_t *out);
+
+/*
+ Write `value` to mutable global `global_index` of module `module_idx`. The
+ value's type must match the global's.
+
+ # Safety
+ `engine` must be live.
+ */
+spacewasm_status_t spacewasm_set_global(struct spacewasm_t *engine,
+                                        uint32_t module_idx,
+                                        uint32_t global_index,
+                                        struct spacewasm_value_t value);
+
+/*
+ Prepare a call to function `func_index` of module `module_idx` with the `n`
+ arguments in `params`. Run it with [`spacewasm_run`].
 
  # Safety
  `engine` must be live; `params` valid for `n` entries.
@@ -533,8 +693,8 @@ spacewasm_status_t spacewasm_invoke(struct spacewasm_t *engine,
                                     size_t n);
 
 /*
- Run the pending invocation for up to `fuel` units of work, writing any trap
- to `out_trap`. Returns whether the call finished, trapped, or ran out of fuel.
+ Run the pending call for up to `fuel` instructions, writing any trap to
+ `out_trap`. A paused engine stays paused until resumed.
 
  # Safety
  `engine` must be live; `out_trap` null or valid.
@@ -544,7 +704,7 @@ spacewasm_run_status_t spacewasm_run(struct spacewasm_t *engine,
                                      spacewasm_trap_t *out_trap);
 
 /*
- Resume the interpreter from a paused state.
+ Resume after a pause from a host function with no result.
 
  # Safety
  `engine` must be live.
@@ -552,9 +712,8 @@ spacewasm_run_status_t spacewasm_run(struct spacewasm_t *engine,
 spacewasm_status_t spacewasm_resume(struct spacewasm_t *engine);
 
 /*
- Resume the interpreter from a paused state.
- This function will also push a value to the interpreter stack
- as the return value of the host function that requested a pause.
+ Resume after a pause, supplying the host function's result. On a type
+ mismatch the pause is kept, so the call can be retried.
 
  # Safety
  `engine` must be live.
@@ -563,8 +722,21 @@ spacewasm_status_t spacewasm_resume_value(struct spacewasm_t *engine,
                                           struct spacewasm_value_t resume_value);
 
 /*
- Fetch the result of the last completed call, coerced to `expected`, into
- `out`.
+ Abandon any call and reset execution state (program counter, stack, pending
+ result, host pause and trap). Loaded modules stay loaded.
+
+ This does not clear guest state: module memories, tables and globals keep
+ their contents, and the next call observes whatever earlier calls wrote.
+ To start from a clean guest, destroy the engine and load the modules again.
+
+ # Safety
+ `engine` must be live.
+ */
+spacewasm_status_t spacewasm_reset(struct spacewasm_t *engine);
+
+/*
+ Read the last completed call's result as type `expected`. The result is
+ untagged, so `expected` must match the function's return type.
 
  # Safety
  `engine` must be live; `out` valid.
@@ -574,19 +746,37 @@ spacewasm_status_t spacewasm_get_result(struct spacewasm_t *engine,
                                         struct spacewasm_value_t *out);
 
 /*
- Destroy an engine and free its resources. No-op on null.
+ Write the call stack's IR PCs to `out_pcs`, innermost first, and its depth to
+ `out_len`. Entry 0 is the current instruction (the faulting one after a trap,
+ the host `call` while paused); each later entry is a `call` instruction, not
+ a return address.
+
+ Writes at most `capacity` entries, returning
+ [`spacewasm_status_t::SPACEWASM_ERR_CAPACITY`] if truncated. Returns
+ [`spacewasm_status_t::SPACEWASM_ERR_WRONG_STATE`] if there is no call stack.
 
  # Safety
- `engine` must be a live handle, not already destroyed.
+ `engine` must be live; `out_pcs` valid for `capacity` entries (or null if
+ 0); `out_len` valid.
+ */
+spacewasm_status_t spacewasm_backtrace(const struct spacewasm_t *engine,
+                                       uint32_t *out_pcs,
+                                       size_t capacity,
+                                       size_t *out_len);
+
+/*
+ Destroy an engine. No-op on null.
+
+ # Safety
+ `engine` must be null or a live handle.
  */
 void spacewasm_destroy(struct spacewasm_t *engine);
 
 /*
- Read `len` bytes of guest linear memory starting at `addr` into `dst`.
- Intended for use from within a host function.
+ Read `len` bytes of guest memory at `addr` into `dst`, from a host function.
 
  # Safety
- `caller` must be a live caller handle; `dst` valid for `len`.
+ `caller` must be live; `dst` valid for `len` bytes.
  */
 spacewasm_status_t spacewasm_mem_read(struct spacewasm_caller_t *caller,
                                       uint32_t addr,
@@ -594,11 +784,10 @@ spacewasm_status_t spacewasm_mem_read(struct spacewasm_caller_t *caller,
                                       size_t len);
 
 /*
- Write `len` bytes from `src` to guest linear memory starting at `addr`.
- Intended for use from within a host function.
+ Write `len` bytes from `src` to guest memory at `addr`, from a host function.
 
  # Safety
- `caller` must be a live caller handle; `src` valid for `len`.
+ `caller` must be live; `src` valid for `len` bytes.
  */
 spacewasm_status_t spacewasm_mem_write(struct spacewasm_caller_t *caller,
                                        uint32_t addr,
@@ -606,11 +795,10 @@ spacewasm_status_t spacewasm_mem_write(struct spacewasm_caller_t *caller,
                                        size_t len);
 
 /*
- Report the size of guest linear memory in pages. Intended for use from
- within a host function.
+ Write the guest memory size in pages to `out_pages`, from a host function.
 
  # Safety
- `caller` must be a live caller handle; `out_pages` must be a valid pointer.
+ `caller` must be live; `out_pages` valid.
  */
 spacewasm_status_t spacewasm_mem_size(struct spacewasm_caller_t *caller, uint32_t *out_pages);
 
@@ -627,7 +815,7 @@ spacewasm_status_t spacewasm_mem_size(struct spacewasm_caller_t *caller, uint32_
 
  returns: !
  */
-extern void spacewasm_panic(const uint8_t *filename,
+SPACEWASM_NORETURN extern void spacewasm_panic(const uint8_t *filename,
                             size_t filename_len,
                             uint32_t line,
                             const uint8_t *msg,
@@ -641,9 +829,9 @@ extern void spacewasm_panic(const uint8_t *filename,
  `alloc`/`dealloc` must remain valid for the lifetime of the process and
  honor the requested size/alignment. `userdata` must outlive all allocations.
  */
-int32_t spacewasm_set_global_allocator(spacewasm_global_alloc_fn_t alloc,
-                                       spacewasm_global_dealloc_fn_t dealloc,
-                                       void *userdata);
+spacewasm_status_t spacewasm_set_global_allocator(spacewasm_global_alloc_fn_t alloc,
+                                                  spacewasm_global_dealloc_fn_t dealloc,
+                                                  void *userdata);
 
 #ifdef __cplusplus
 }  // extern "C"
